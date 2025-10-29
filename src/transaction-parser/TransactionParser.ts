@@ -126,12 +126,4 @@ class TransactionParserService {
   }
 }
 
-// Export singleton instance
 export const transactionParser = new TransactionParserService();
-
-// Usage example:
-// import { transactionParser } from './services/TransactionParser';
-//
-// const result = transactionParser.parse(smsText);
-// console.log(result);
-// // { category: 'Groceries', amount: 1457, date: Date(...), merchant: 'KEELLS PILIYANDALA' }
