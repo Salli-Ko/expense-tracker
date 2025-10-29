@@ -1,7 +1,7 @@
 import { Expense } from '@/database/models/Expense';
 import { IDatabase } from '@/database/types';
 
-class WebDatabaseService implements IDatabase {
+class DatabaseServiceWeb implements IDatabase {
   private db: IDBDatabase | null = null;
   private isInitialized: boolean = false;
   private readonly DB_NAME = 'ExpenseTrackerDB';
@@ -234,4 +234,4 @@ class WebDatabaseService implements IDatabase {
   }
 }
 
-export default new WebDatabaseService();
+export default new DatabaseServiceWeb();

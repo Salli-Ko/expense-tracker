@@ -1,20 +1,10 @@
-import { Platform } from 'react-native';
-import DatabaseService from '@/database/DatabaseService';
-import WebDatabaseService from '@/database/WebDatabaseService';
-import { IDatabase } from '@/database/types';
+// This file automatically imports the correct implementation based on platform
+// No platform checks needed - React Native handles it!
 
-const IS_WEB = Platform.OS === 'web';
+// For web: imports from DatabaseService.web.ts (which doesn't exist, so it falls back)
+// For iOS/Android: imports from DatabaseService.native.ts
+import DatabaseService from './DatabaseService';
 
-// Automatically switch between SQLite (mobile) and IndexedDB (web)
-const StorageService: IDatabase = IS_WEB
-  ? WebDatabaseService
-  : DatabaseService;
+console.log('📦 StorageService loaded (platform-specific)');
 
-console.log(`📦 Using ${IS_WEB ? 'IndexedDB' : 'SQLite'} storage on ${Platform.OS}`);
-
-// Validate the service loaded correctly
-if (!StorageService) {
-  throw new Error('Failed to initialize StorageService');
-}
-
-export default StorageService;
+export default DatabaseService;

@@ -1,36 +1,35 @@
-import SQLite, { SQLiteDatabase } from 'react-native-sqlite-storage';
+import * as SQLite from 'expo-sqlite';
 import { Expense } from '@/database/models/Expense';
 import { IDatabase } from '@/database/types';
 
-SQLite.enablePromise(true);
-
-class DatabaseService implements IDatabase {
-  private db: SQLiteDatabase | null = null;
+class DatabaseServiceNative implements IDatabase {
+  private db: SQLite.SQLiteDatabase | null = null;
   private isInitialized: boolean = false;
 
-  async openDatabase(): Promise<SQLiteDatabase> {
+  async openDatabase(): Promise<SQLite.SQLiteDatabase> {
     if (this.db && this.isInitialized) {
+      console.log('📦 SQLite: Database already open');
       return this.db;
     }
 
     try {
-      this.db = await SQLite.openDatabase({
-        name: 'expenseTracker.db',
-        location: 'default',
-      });
+      console.log('📦 SQLite: Opening database...');
+
+      this.db = await SQLite.openDatabaseAsync('expenseTracker.db');
+
       this.isInitialized = true;
-      console.log('SQLite Database opened successfully');
+      console.log('✅ SQLite: Database opened successfully');
       return this.db;
     } catch (error) {
-      console.error('Error opening database:', error);
+      console.error('❌ SQLite: Error opening database:', error);
       this.isInitialized = false;
-      throw error;
+      throw new Error(`Failed to open SQLite database: ${error}`);
     }
   }
 
   private ensureDbReady(): void {
     if (!this.db || !this.isInitialized) {
-      throw new Error('Database not opened. Call openDatabase() first.');
+      throw new Error('SQLite database not opened. Call openDatabase() first.');
     }
   }
 
@@ -38,7 +37,9 @@ class DatabaseService implements IDatabase {
     this.ensureDbReady();
 
     try {
-      await this.db!.executeSql(
+      console.log('📦 SQLite: Creating tables...');
+
+      await this.db!.execAsync(
         `CREATE TABLE IF NOT EXISTS expenses (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           category TEXT NOT NULL,
@@ -47,9 +48,10 @@ class DatabaseService implements IDatabase {
           description TEXT
         )`
       );
-      console.log('Tables created successfully');
+
+      console.log('✅ SQLite: Tables created successfully');
     } catch (error) {
-      console.error('Error creating tables:', error);
+      console.error('❌ SQLite: Error creating tables:', error);
       throw error;
     }
   }
@@ -58,13 +60,17 @@ class DatabaseService implements IDatabase {
     this.ensureDbReady();
 
     try {
-      const result = await this.db!.executeSql(
+      console.log('📦 SQLite: Inserting expense:', expense);
+
+      const result = await this.db!.runAsync(
         'INSERT INTO expenses (category, amount, date, description) VALUES (?, ?, ?, ?)',
         [expense.category, expense.amount, expense.date, expense.description || null]
       );
-      return result[0].insertId;
+
+      console.log('✅ SQLite: Expense inserted with ID:', result.lastInsertRowId);
+      return result.lastInsertRowId;
     } catch (error) {
-      console.error('Error inserting expense:', error);
+      console.error('❌ SQLite: Error inserting expense:', error);
       throw error;
     }
   }
@@ -73,17 +79,16 @@ class DatabaseService implements IDatabase {
     this.ensureDbReady();
 
     try {
-      const results = await this.db!.executeSql('SELECT * FROM expenses ORDER BY date DESC');
-      const expenses: Expense[] = [];
+      console.log('📦 SQLite: Fetching all expenses...');
 
-      const rows = results[0].rows;
-      for (let i = 0; i < rows.length; i++) {
-        expenses.push(rows.item(i));
-      }
+      const expenses = await this.db!.getAllAsync<Expense>(
+        'SELECT * FROM expenses ORDER BY date DESC'
+      );
 
+      console.log(`✅ SQLite: Fetched ${expenses.length} expenses`);
       return expenses;
     } catch (error) {
-      console.error('Error getting expenses:', error);
+      console.error('❌ SQLite: Error getting expenses:', error);
       throw error;
     }
   }
@@ -92,20 +97,14 @@ class DatabaseService implements IDatabase {
     this.ensureDbReady();
 
     try {
-      const results = await this.db!.executeSql(
+      const expenses = await this.db!.getAllAsync<Expense>(
         'SELECT * FROM expenses WHERE category = ? ORDER BY date DESC',
         [category]
       );
-      const expenses: Expense[] = [];
-
-      const rows = results[0].rows;
-      for (let i = 0; i < rows.length; i++) {
-        expenses.push(rows.item(i));
-      }
 
       return expenses;
     } catch (error) {
-      console.error('Error getting expenses by category:', error);
+      console.error('❌ SQLite: Error getting expenses by category:', error);
       throw error;
     }
   }
@@ -114,20 +113,14 @@ class DatabaseService implements IDatabase {
     this.ensureDbReady();
 
     try {
-      const results = await this.db!.executeSql(
+      const expenses = await this.db!.getAllAsync<Expense>(
         'SELECT * FROM expenses WHERE date BETWEEN ? AND ? ORDER BY date DESC',
         [startDate, endDate]
       );
-      const expenses: Expense[] = [];
-
-      const rows = results[0].rows;
-      for (let i = 0; i < rows.length; i++) {
-        expenses.push(rows.item(i));
-      }
 
       return expenses;
     } catch (error) {
-      console.error('Error getting expenses by date range:', error);
+      console.error('❌ SQLite: Error getting expenses by date range:', error);
       throw error;
     }
   }
@@ -136,10 +129,12 @@ class DatabaseService implements IDatabase {
     this.ensureDbReady();
 
     try {
-      const results = await this.db!.executeSql('SELECT SUM(amount) as total FROM expenses');
-      return results[0].rows.item(0).total || 0;
+      const result = await this.db!.getFirstAsync<{ total: number }>(
+        'SELECT SUM(amount) as total FROM expenses'
+      );
+      return result?.total || 0;
     } catch (error) {
-      console.error('Error getting total expenses:', error);
+      console.error('❌ SQLite: Error getting total expenses:', error);
       throw error;
     }
   }
@@ -148,13 +143,13 @@ class DatabaseService implements IDatabase {
     this.ensureDbReady();
 
     try {
-      const results = await this.db!.executeSql(
+      const result = await this.db!.getFirstAsync<{ total: number }>(
         'SELECT SUM(amount) as total FROM expenses WHERE category = ?',
         [category]
       );
-      return results[0].rows.item(0).total || 0;
+      return result?.total || 0;
     } catch (error) {
-      console.error('Error getting total by category:', error);
+      console.error('❌ SQLite: Error getting total by category:', error);
       throw error;
     }
   }
@@ -167,12 +162,13 @@ class DatabaseService implements IDatabase {
     }
 
     try {
-      await this.db!.executeSql(
+      await this.db!.runAsync(
         'UPDATE expenses SET category = ?, amount = ?, date = ?, description = ? WHERE id = ?',
         [expense.category, expense.amount, expense.date, expense.description || null, expense.id]
       );
+      console.log('✅ SQLite: Expense updated');
     } catch (error) {
-      console.error('Error updating expense:', error);
+      console.error('❌ SQLite: Error updating expense:', error);
       throw error;
     }
   }
@@ -181,9 +177,10 @@ class DatabaseService implements IDatabase {
     this.ensureDbReady();
 
     try {
-      await this.db!.executeSql('DELETE FROM expenses WHERE id = ?', [id]);
+      await this.db!.runAsync('DELETE FROM expenses WHERE id = ?', [id]);
+      console.log('✅ SQLite: Expense deleted');
     } catch (error) {
-      console.error('Error deleting expense:', error);
+      console.error('❌ SQLite: Error deleting expense:', error);
       throw error;
     }
   }
@@ -192,17 +189,18 @@ class DatabaseService implements IDatabase {
     this.ensureDbReady();
 
     try {
-      await this.db!.executeSql('DELETE FROM expenses');
+      await this.db!.runAsync('DELETE FROM expenses');
+      console.log('✅ SQLite: All expenses deleted');
     } catch (error) {
-      console.error('Error deleting all expenses:', error);
+      console.error('❌ SQLite: Error deleting all expenses:', error);
       throw error;
     }
   }
 
   async closeDatabase(): Promise<void> {
     if (this.db) {
-      await this.db.close();
-      console.log('Database closed');
+      await this.db.closeAsync();
+      console.log('✅ SQLite: Database closed');
       this.db = null;
       this.isInitialized = false;
     }
@@ -213,4 +211,5 @@ class DatabaseService implements IDatabase {
   }
 }
 
-export default new DatabaseService();
+// Export instance
+export default new DatabaseServiceNative();
