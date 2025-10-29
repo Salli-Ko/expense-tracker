@@ -56,10 +56,8 @@ const HomeScreen: React.FC = () => {
   const loadExpenses = async () => {
     try {
       const expenseList = await StorageService.getAllExpenses();
-      console.log(`📊 Loaded ${expenseList.length} expenses`);
       setExpenses(expenseList);
     } catch (error) {
-      console.error('Error loading expenses:', error);
       throw error;
     }
   };
@@ -67,7 +65,6 @@ const HomeScreen: React.FC = () => {
   const loadTotalExpenses = async () => {
     try {
       const total = await StorageService.getTotalExpenses();
-      console.log(`💰 Total expenses: $${total}`);
       setTotalExpenses(total);
     } catch (error) {
       console.error('Error loading total expenses:', error);
@@ -94,7 +91,6 @@ const HomeScreen: React.FC = () => {
     }
 
     try {
-      console.log('📝 Adding expense...');
 
       const newExpense: Omit<Expense, 'id'> = {
         category,
@@ -104,7 +100,6 @@ const HomeScreen: React.FC = () => {
       };
 
       const insertId = await StorageService.insertExpense(newExpense);
-      console.log(`✅ Expense added with ID: ${insertId}`);
 
       // Reset form
       setAmount('');
@@ -134,9 +129,7 @@ const HomeScreen: React.FC = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log(`🗑️ Deleting expense with ID: ${id}`);
               await StorageService.deleteExpense(id);
-              console.log('✅ Expense deleted');
 
               await loadExpenses();
               await loadTotalExpenses();
