@@ -8,17 +8,21 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import StorageService from '@/database/StorageService';
 import { Expense, ExpenseCategory } from '@/database/models/Expense';
 import ExpenseList from '@/components/ExpenseList';
+import { transactionParser } from '@/transaction-parser/TransactionParser';
 
 const HomeScreen: React.FC = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [category, setCategory] = useState<string>(ExpenseCategory.FOOD);
   const [amount, setAmount] = useState<string>('');
   const [description, setDescription] = useState<string>('');
+  const [smsMessage, setSmsMessage] = useState<string>('');
+  const [isSmsExpanded, setIsSmsExpanded] = useState<boolean>(false);
   const [totalExpenses, setTotalExpenses] = useState<number>(0);
   const [isDbReady, setIsDbReady] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
@@ -72,6 +76,58 @@ const HomeScreen: React.FC = () => {
     }
   };
 
+  const handleParseSMS = () => {
+    if (!smsMessage.trim()) {
+      Alert.alert('Error', 'Please paste an SMS message');
+      return;
+    }
+
+    try {
+      const parsed = transactionParser.parse(smsMessage);
+
+      if (parsed.amount === 0) {
+        Alert.alert('Error', 'Could not extract amount from the message');
+        return;
+      }
+
+      // Map parsed category to ExpenseCategory enum
+      const mappedCategory = mapToExpenseCategory(parsed.category);
+
+      setCategory(mappedCategory);
+      setAmount(parsed.amount.toString());
+      setDescription(parsed.merchant || '');
+
+      Alert.alert(
+        'SMS Parsed Successfully',
+        `Category: ${parsed.category}\nAmount: ${parsed.amount}\nMerchant: ${parsed.merchant || 'N/A'}`,
+        [{ text: 'OK' }]
+      );
+
+      // Collapse SMS section after parsing
+      setIsSmsExpanded(false);
+    } catch (error) {
+      console.error('Error parsing SMS:', error);
+      Alert.alert('Error', 'Failed to parse SMS message');
+    }
+  };
+
+  const mapToExpenseCategory = (parsedCategory: string): string => {
+    const categoryMap: Record<string, string> = {
+      'Groceries': ExpenseCategory.FOOD,
+      'Food': ExpenseCategory.FOOD,
+      'Dining': ExpenseCategory.FOOD,
+      'Fuel': ExpenseCategory.TRANSPORTATION,
+      'Transport': ExpenseCategory.TRANSPORTATION,
+      'Healthcare': ExpenseCategory.HEALTH,
+      'Entertainment': ExpenseCategory.ENTERTAINMENT,
+      'Shopping': ExpenseCategory.SHOPPING,
+      'Utilities': ExpenseCategory.UTILITIES,
+      'Other': ExpenseCategory.OTHER,
+    };
+
+    return categoryMap[parsedCategory] || ExpenseCategory.OTHER;
+  };
+
   const handleAddExpense = async () => {
     if (!isDbReady) {
       Alert.alert('Please Wait', 'Database is still loading...');
@@ -91,7 +147,6 @@ const HomeScreen: React.FC = () => {
     }
 
     try {
-
       const newExpense: Omit<Expense, 'id'> = {
         category,
         amount: amountNum,
@@ -99,11 +154,12 @@ const HomeScreen: React.FC = () => {
         description: description || undefined,
       };
 
-      const insertId = await StorageService.insertExpense(newExpense);
+      await StorageService.insertExpense(newExpense);
 
       // Reset form
       setAmount('');
       setDescription('');
+      setSmsMessage('');
       setCategory(ExpenseCategory.FOOD);
 
       // Reload data
@@ -146,7 +202,6 @@ const HomeScreen: React.FC = () => {
   };
 
   const handleEditExpense = (expense: Expense) => {
-    // Set form values for editing
     setCategory(expense.category);
     setAmount(expense.amount.toString());
     setDescription(expense.description || '');
@@ -186,54 +241,91 @@ const HomeScreen: React.FC = () => {
         <Text style={styles.title}>Expense Tracker</Text>
         <View style={styles.totalContainer}>
           <Text style={styles.totalLabel}>Total Expenses:</Text>
-          <Text style={styles.totalAmount}>${totalExpenses.toFixed(2)}</Text>
+          <Text style={styles.totalAmount}>LKR {totalExpenses.toFixed(2)}</Text>
         </View>
       </View>
 
       <View style={styles.form}>
         <Text style={styles.formTitle}>Add New Expense</Text>
 
-        <Text style={styles.label}>Category</Text>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={category}
-            onValueChange={(value) => setCategory(value)}
-            style={styles.picker}
-          >
-            {Object.values(ExpenseCategory).map((cat) => (
-              <Picker.Item key={cat} label={cat} value={cat} />
-            ))}
-          </Picker>
-        </View>
+        {/* Collapsible SMS Input Section */}
+        <TouchableOpacity
+          style={styles.smsToggle}
+          onPress={() => setIsSmsExpanded(!isSmsExpanded)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.smsToggleText}>
+            {isSmsExpanded ? '📱 Hide SMS Parser' : '📱 Parse Bank SMS'}
+          </Text>
+          <Text style={styles.smsToggleIcon}>
+            {isSmsExpanded ? '▼' : '▶'}
+          </Text>
+        </TouchableOpacity>
 
-        <Text style={styles.label}>Amount ($)</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="0.00"
-          placeholderTextColor="#999"
-          keyboardType="decimal-pad"
-          value={amount}
-          onChangeText={setAmount}
-        />
+        {isSmsExpanded && (
+          <View style={styles.smsSection}>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Paste your bank SMS here..."
+              placeholderTextColor="#999"
+              value={smsMessage}
+              onChangeText={setSmsMessage}
+              multiline
+              numberOfLines={4}
+            />
+            <View style={styles.buttonContainer}>
+              <Button
+                title="Parse SMS"
+                onPress={handleParseSMS}
+                color="#27ae60"
+              />
+            </View>
 
-        <Text style={styles.label}>Description (Optional)</Text>
-        <TextInput
-          style={[styles.input, styles.textArea]}
-          placeholder="Add a note..."
-          placeholderTextColor="#999"
-          value={description}
-          onChangeText={setDescription}
-          multiline
-          numberOfLines={3}
-        />
+            <View style={styles.divider} />
 
-        <View style={styles.buttonContainer}>
-          <Button
-            title="Add Expense"
-            onPress={handleAddExpense}
-            color="#3498db"
-          />
-        </View>
+            <Text style={styles.label}>Category</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={category}
+                onValueChange={(value) => setCategory(value)}
+                style={styles.picker}
+              >
+                {Object.values(ExpenseCategory).map((cat) => (
+                  <Picker.Item key={cat} label={cat} value={cat} />
+                ))}
+              </Picker>
+            </View>
+
+            <Text style={styles.label}>Amount (LKR)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="0.00"
+              placeholderTextColor="#999"
+              keyboardType="decimal-pad"
+              value={amount}
+              onChangeText={setAmount}
+            />
+
+            <Text style={styles.label}>Description (Optional)</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Add a note..."
+              placeholderTextColor="#999"
+              value={description}
+              onChangeText={setDescription}
+              multiline
+              numberOfLines={3}
+            />
+
+            <View style={styles.buttonContainer}>
+              <Button
+                title="Add Expense"
+                onPress={handleAddExpense}
+                color="#3498db"
+              />
+            </View>
+          </View>
+        )}
       </View>
 
       <View style={styles.expensesList}>
@@ -305,6 +397,29 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 16,
   },
+  smsToggle: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    padding: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    marginBottom: 12,
+  },
+  smsToggleText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#27ae60',
+  },
+  smsToggleIcon: {
+    fontSize: 16,
+    color: '#27ae60',
+  },
+  smsSection: {
+    marginBottom: 8,
+  },
   label: {
     fontSize: 16,
     fontWeight: '600',
@@ -336,6 +451,12 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     marginTop: 8,
+    marginBottom: 16,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#e0e0e0',
+    marginVertical: 16,
   },
   expensesList: {
     flex: 1,

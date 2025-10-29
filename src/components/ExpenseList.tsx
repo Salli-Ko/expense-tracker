@@ -23,7 +23,7 @@ const ExpenseList: React.FC<ExpenseListProps> = ({
   };
 
   const formatAmount = (amount: number): string => {
-    return `$${amount.toFixed(2)}`;
+    return `LKR ${amount.toFixed(2)}`;
   };
 
   const renderExpenseItem = ({ item }: { item: Expense }) => (
