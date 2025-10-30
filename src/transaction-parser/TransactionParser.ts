@@ -1,3 +1,5 @@
+import StorageService from '@/database/StorageService';
+
 interface ParsedTransaction {
   category: string;
   amount: number;
@@ -6,23 +8,23 @@ interface ParsedTransaction {
 }
 
 class TransactionParserService {
-  private readonly CATEGORIES: Record<string, string[]> = {
+  private readonly DEFAULT_CATEGORIES: Record<string, string[]> = {
     Groceries: ['keells', 'cargills', 'arpico', 'laugfs', 'food city', 'spar'],
     Fuel: ['ceypetco', 'shell', 'ioc', 'laughs', 'lanka ioc'],
     Dining: ['kfc', 'pizza', 'mcdonalds', 'burger king', 'subway', 'restaurant', 'cafe', 'coffee'],
     Transport: ['uber', 'pickme', 'kangaroo', 'taxi'],
     Utilities: ['ceb', 'leco', 'water board', 'dialog', 'mobitel', 'hutch', 'airtel', 'slt'],
-    Healthcare: ['pharmacy', 'hospital', 'medical', 'clinic', 'pharmacy'],
+    Healthcare: ['pharmacy', 'hospital', 'medical', 'clinic'],
     Shopping: ['fashion bug', 'odel', 'nolimit', 'cotton collection'],
     Entertainment: ['cinema', 'scope', 'savoy', 'liberty'],
     Food: ['bakers'],
   };
 
-  parse(smsText: string): ParsedTransaction {
+  async parse(smsText: string): Promise<ParsedTransaction> {
     const amount = this.extractAmount(smsText);
     const merchant = this.extractMerchant(smsText);
     const date = this.extractDate(smsText);
-    const category = this.categorize(merchant || smsText);
+    const category = await this.categorize(merchant || smsText);
 
     return {
       category,
@@ -113,16 +115,46 @@ class TransactionParserService {
     return new Date();
   }
 
-  private categorize(text: string): string {
+  /**
+   * Categorize text using both learned keywords and default categories
+   * Priority: Learned keywords > Default keywords
+   */
+  private async categorize(text: string): Promise<string> {
     const lowerText = text.toLowerCase();
 
-    for (const [category, keywords] of Object.entries(this.CATEGORIES)) {
+    // First, try to find a learned category
+    try {
+      const learnedCategory = await StorageService.searchLearnedCategory(text);
+      if (learnedCategory) {
+        return learnedCategory;
+      }
+    } catch (error) {
+      console.error('Error searching learned categories:', error);
+      // Continue to default categories if there's an error
+    }
+
+    // Fall back to default categories
+    for (const [category, keywords] of Object.entries(this.DEFAULT_CATEGORIES)) {
       if (keywords.some(keyword => lowerText.includes(keyword))) {
         return category;
       }
     }
 
     return 'Other';
+  }
+
+  /**
+   * Learn a new merchant-category association
+   */
+  async learnCategory(merchant: string, category: string): Promise<void> {
+    if (!merchant || !category) return;
+
+    try {
+      await StorageService.saveCategoryKeyword(merchant.toLowerCase(), category);
+    } catch (error) {
+      console.error('Error learning category:', error);
+      throw error;
+    }
   }
 }
 

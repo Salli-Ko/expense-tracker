@@ -1,11 +1,22 @@
-import React from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
-import { Expense } from '../database/models/Expense';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+} from 'react-native';
+import { Expense } from '@/database/models/Expense';
 
 interface ExpenseListProps {
   expenses: Expense[];
   onDeleteExpense: (id: number) => void;
-  onEditExpense?: (expense: Expense) => void;
+  onEditExpense: (expense: Expense) => void;
+}
+
+interface GroupedExpenses {
+  date: string;
+  expenses: Expense[];
 }
 
 const ExpenseList: React.FC<ExpenseListProps> = ({
@@ -13,130 +24,247 @@ const ExpenseList: React.FC<ExpenseListProps> = ({
                                                    onDeleteExpense,
                                                    onEditExpense,
                                                  }) => {
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
+  const [selectedExpenseId, setSelectedExpenseId] = useState<number | null>(null);
+
+  // Group expenses by date
+  const groupExpensesByDate = (): GroupedExpenses[] => {
+    const grouped: Record<string, Expense[]> = {};
+
+    expenses.forEach((expense) => {
+      const date = new Date(expense.date);
+      const dateKey = date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = [];
+      }
+      grouped[dateKey].push(expense);
     });
+
+    // Convert to array and sort by date (newest first)
+    return Object.entries(grouped)
+      .map(([date, expenses]) => ({
+        date,
+        expenses: expenses.sort((a, b) =>
+          new Date(b.date).getTime() - new Date(a.date).getTime()
+        ),
+      }))
+      .sort((a, b) => {
+        const dateA = new Date(a.expenses[0].date);
+        const dateB = new Date(b.expenses[0].date);
+        return dateB.getTime() - dateA.getTime();
+      });
+  };
+
+  const handleExpensePress = (expenseId: number) => {
+    if (selectedExpenseId === expenseId) {
+      setSelectedExpenseId(null); // Deselect if already selected
+    } else {
+      setSelectedExpenseId(expenseId);
+    }
   };
 
   const formatAmount = (amount: number): string => {
-    return `LKR ${amount.toFixed(2)}`;
+    return amount.toFixed(2);
   };
 
-  const renderExpenseItem = ({ item }: { item: Expense }) => (
-    <View style={styles.expenseItem}>
-      <View style={styles.expenseInfo}>
-        <Text style={styles.category}>{item.category}</Text>
-        <Text style={styles.amount}>{formatAmount(item.amount)}</Text>
-        <Text style={styles.date}>{formatDate(item.date)}</Text>
-        {item.description && (
-          <Text style={styles.description}>{item.description}</Text>
-        )}
+  const groupedExpenses = groupExpensesByDate();
+
+  if (expenses.length === 0) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyIcon}>📭</Text>
+        <Text style={styles.emptyText}>No expenses yet</Text>
       </View>
-      <View style={styles.actions}>
-        {onEditExpense && (
-          <TouchableOpacity
-            onPress={() => onEditExpense(item)}
-            style={styles.editButton}
-          >
-            <Text style={styles.editButtonText}>Edit</Text>
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity
-          onPress={() => item.id && onDeleteExpense(item.id)}
-          style={styles.deleteButton}
-        >
-          <Text style={styles.deleteButtonText}>Delete</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+    );
+  }
 
   return (
     <FlatList
-      data={expenses}
-      keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
-      renderItem={renderExpenseItem}
-      ListEmptyComponent={
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No expenses yet</Text>
+      data={groupedExpenses}
+      keyExtractor={(item) => item.date}
+      renderItem={({ item: group }) => (
+        <View style={styles.dateGroup}>
+          <View style={styles.dateHeader}>
+            <Text style={styles.dateText}>{group.date}</Text>
+            <Text style={styles.dateTotal}>
+              LKR {group.expenses.reduce((sum, exp) => sum + exp.amount, 0).toFixed(2)}
+            </Text>
+          </View>
+
+          {group.expenses.map((expense) => {
+            const isSelected = selectedExpenseId === expense.id;
+
+            return (
+              <View key={expense.id}>
+                <TouchableOpacity
+                  style={[
+                    styles.expenseRow,
+                    isSelected && styles.expenseRowSelected,
+                  ]}
+                  onPress={() => handleExpensePress(expense.id!)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.expenseInfo}>
+                    <View style={styles.expenseLeft}>
+                      <Text style={styles.categoryText}>{expense.category}</Text>
+                      {expense.description && (
+                        <Text style={styles.descriptionText} numberOfLines={1}>
+                          {expense.description}
+                        </Text>
+                      )}
+                    </View>
+                    <Text style={styles.amountText}>
+                      LKR {formatAmount(expense.amount)}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                {isSelected && (
+                  <View style={styles.actionsRow}>
+                    <TouchableOpacity
+                      style={[styles.actionButton, styles.editButton]}
+                      onPress={() => {
+                        onEditExpense(expense);
+                        setSelectedExpenseId(null);
+                      }}
+                    >
+                      <Text style={styles.actionIcon}>✏️</Text>
+                      <Text style={styles.actionText}>Edit</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.actionButton, styles.deleteButton]}
+                      onPress={() => {
+                        onDeleteExpense(expense.id!);
+                        setSelectedExpenseId(null);
+                      }}
+                    >
+                      <Text style={styles.actionIcon}>🗑️</Text>
+                      <Text style={styles.actionText}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            );
+          })}
         </View>
-      }
+      )}
+      scrollEnabled={false}
+      nestedScrollEnabled={false}
     />
   );
 };
 
 const styles = StyleSheet.create({
-  expenseItem: {
-    backgroundColor: '#fff',
-    padding: 16,
-    marginVertical: 8,
+  dateGroup: {
     marginHorizontal: 16,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    marginBottom: 20,
   },
-  expenseInfo: {
+  dateHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#ecf0f1',
+    borderRadius: 8,
     marginBottom: 8,
   },
-  category: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  amount: {
-    fontSize: 20,
+  dateText: {
+    fontSize: 14,
     fontWeight: '600',
-    color: '#e74c3c',
-    marginVertical: 4,
+    color: '#2c3e50',
   },
-  date: {
+  dateTotal: {
     fontSize: 14,
-    color: '#666',
+    fontWeight: 'bold',
+    color: '#3498db',
   },
-  description: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 4,
+  expenseRow: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    marginBottom: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
-  actions: {
+  expenseRowSelected: {
+    backgroundColor: '#e8f4f8',
+    borderColor: '#3498db',
+    borderWidth: 1,
+  },
+  expenseInfo: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+  },
+  expenseLeft: {
+    flex: 1,
+    marginRight: 12,
+  },
+  categoryText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2c3e50',
+    marginBottom: 2,
+  },
+  descriptionText: {
+    fontSize: 13,
+    color: '#7f8c8d',
+  },
+  amountText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#e74c3c',
+  },
+  actionsRow: {
+    flexDirection: 'row',
     gap: 8,
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 6,
+    gap: 6,
   },
   editButton: {
     backgroundColor: '#3498db',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 4,
-  },
-  editButtonText: {
-    color: '#fff',
-    fontWeight: '600',
   },
   deleteButton: {
     backgroundColor: '#e74c3c',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 4,
   },
-  deleteButtonText: {
-    color: '#fff',
+  actionIcon: {
+    fontSize: 16,
+  },
+  actionText: {
+    fontSize: 14,
     fontWeight: '600',
+    color: '#fff',
   },
   emptyContainer: {
-    padding: 32,
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: 12,
   },
   emptyText: {
     fontSize: 16,
-    color: '#999',
+    color: '#95a5a6',
   },
 });
 
