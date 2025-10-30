@@ -60,41 +60,45 @@ class TransactionParserService {
   }
 
   private extractDate(text: string): Date {
-    // Match patterns like: 25/10/25 or 25-10-2025 or 25/10/2025
-    const datePatterns = [/(\d{2}\/\d{2}\/\d{2,4})/, /(\d{2}-\d{2}-\d{2,4})/];
+    try {
+      // Match patterns like: 25/10/25 or 25-10-2025 or 25/10/2025
+      const datePatterns = [/(\d{2}\/\d{2}\/\d{2,4})/, /(\d{2}-\d{2}-\d{2,4})/];
 
-    for (const pattern of datePatterns) {
-      const match = text.match(pattern);
-      if (match) {
-        const dateStr = match[1];
-        const parts = dateStr.split(/[/-]/);
+      for (const pattern of datePatterns) {
+        const match = text.match(pattern);
+        if (match) {
+          const dateStr = match[1];
+          const parts = dateStr.split(/[/-]/);
 
-        if (parts.length === 3) {
-          let [day, month, year] = parts.map((p) => parseInt(p));
+          if (parts.length === 3) {
+            let [day, month, year] = parts.map((p) => parseInt(p));
 
-          // Handle 2-digit year
-          if (year < 100) {
-            year += 2000;
+            // Handle 2-digit year
+            if (year < 100) {
+              year += 2000;
+            }
+
+            const date = new Date(year, month - 1, day);
+
+            // Extract time if exists
+            const timeMatch = text.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+            if (timeMatch) {
+              let hours = parseInt(timeMatch[1]);
+              const minutes = parseInt(timeMatch[2]);
+              const meridiem = timeMatch[3]?.toUpperCase();
+
+              if (meridiem === 'PM' && hours < 12) hours += 12;
+              if (meridiem === 'AM' && hours === 12) hours = 0;
+
+              date.setHours(hours, minutes);
+            }
+
+            return date;
           }
-
-          const date = new Date(year, month - 1, day);
-
-          // Extract time if exists
-          const timeMatch = text.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
-          if (timeMatch) {
-            let hours = parseInt(timeMatch[1]);
-            const minutes = parseInt(timeMatch[2]);
-            const meridiem = timeMatch[3]?.toUpperCase();
-
-            if (meridiem === 'PM' && hours < 12) hours += 12;
-            if (meridiem === 'AM' && hours === 12) hours = 0;
-
-            date.setHours(hours, minutes);
-          }
-
-          return date;
         }
       }
+    } catch (e) {
+      console.error(e);
     }
 
     // Return current date if not found

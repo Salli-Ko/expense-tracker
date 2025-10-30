@@ -23,8 +23,9 @@ interface ExpenseFormProps {
 
 const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, isDbReady, onExpenseAdded }) => {
   // Form states
-  const [category, setCategory] = useState<string>(ExpenseCategory.FOOD);
+  const [category, setCategory] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
+  const [date, setDate] = useState<Date | null>(null);
   const [description, setDescription] = useState<string>('');
   const [smsMessage, setSmsMessage] = useState<string>('');
   const [isSmsExpanded, setIsSmsExpanded] = useState<boolean>(false);
@@ -55,21 +56,24 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, isDbReady, onExpe
       setCategory(suggestedCategory);
       setAmount(parsed.amount.toString());
       setDescription(parsed.merchant || '');
+      setDate(parsed.date);
 
-      // Store parsed data for potential learning
+      // Store parsed data
       setParsedMerchant(parsed.merchant || '');
       setOriginalCategory(parsed.category);
 
+      // Build optional date text
+      const dateText = parsed.date ? `\nDate: ${parsed.date}` : '';
+
       Alert.alert(
         'SMS Parsed Successfully',
-        `Category: ${parsed.category}\nAmount: ${parsed.amount}\nMerchant: ${
-          parsed.merchant || 'N/A'
-        }\n\nYou can change the category if needed. The app will learn from your corrections.`,
-        [{ text: 'OK' }]
-      );
+        `Category: ${parsed.category}
+          Amount: ${parsed.amount}
+          Merchant: ${parsed.merchant || 'N/A'}${dateText}
 
-      // Collapse SMS section after parsing
-      setIsSmsExpanded(false);
+          You can change the category if needed. The app will learn from your corrections.`,
+        [{ text: 'OK' }],
+      );
     } catch (error) {
       console.error('Error parsing SMS:', error);
       Alert.alert('Error', 'Failed to parse SMS message');
@@ -98,7 +102,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, isDbReady, onExpe
       const newExpense: Omit<Expense, 'id'> = {
         category,
         amount: amountNum,
-        date: new Date().toISOString(),
+        date: date ? date.toISOString() : new Date().toISOString(),
         description: description || undefined,
       };
 

@@ -228,7 +228,9 @@ class DatabaseServiceNative implements IDatabase {
 
     try {
       const result = await this.db!.getFirstAsync<{ total: number }>(
-        'SELECT SUM(amount) as total FROM expenses',
+        `SELECT SUM(amount) as total 
+       FROM expenses
+       WHERE strftime('%Y-%m', date) = strftime('%Y-%m', 'now')`
       );
       return result?.total || 0;
     } catch (error) {
