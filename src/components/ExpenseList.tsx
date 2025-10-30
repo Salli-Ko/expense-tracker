@@ -1,11 +1,5 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  FlatList,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 import { Expense } from '@/database/models/Expense';
 
 interface ExpenseListProps {
@@ -19,11 +13,7 @@ interface GroupedExpenses {
   expenses: Expense[];
 }
 
-const ExpenseList: React.FC<ExpenseListProps> = ({
-                                                   expenses,
-                                                   onDeleteExpense,
-                                                   onEditExpense,
-                                                 }) => {
+const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDeleteExpense, onEditExpense }) => {
   const [selectedExpenseId, setSelectedExpenseId] = useState<number | null>(null);
 
   // Group expenses by date
@@ -48,9 +38,7 @@ const ExpenseList: React.FC<ExpenseListProps> = ({
     return Object.entries(grouped)
       .map(([date, expenses]) => ({
         date,
-        expenses: expenses.sort((a, b) =>
-          new Date(b.date).getTime() - new Date(a.date).getTime()
-        ),
+        expenses: expenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
       }))
       .sort((a, b) => {
         const dateA = new Date(a.expenses[0].date);
@@ -101,10 +89,7 @@ const ExpenseList: React.FC<ExpenseListProps> = ({
             return (
               <View key={expense.id}>
                 <TouchableOpacity
-                  style={[
-                    styles.expenseRow,
-                    isSelected && styles.expenseRowSelected,
-                  ]}
+                  style={[styles.expenseRow, isSelected && styles.expenseRowSelected]}
                   onPress={() => handleExpensePress(expense.id!)}
                   activeOpacity={0.7}
                 >
@@ -117,9 +102,7 @@ const ExpenseList: React.FC<ExpenseListProps> = ({
                         </Text>
                       )}
                     </View>
-                    <Text style={styles.amountText}>
-                      LKR {formatAmount(expense.amount)}
-                    </Text>
+                    <Text style={styles.amountText}>LKR {formatAmount(expense.amount)}</Text>
                   </View>
                 </TouchableOpacity>
 

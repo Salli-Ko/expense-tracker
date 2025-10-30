@@ -84,13 +84,9 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
                 <View style={styles.debugContainer}>
                   <Text style={styles.debugTitle}>Error Details (Dev Only):</Text>
                   <View style={styles.debugBox}>
-                    <Text style={styles.debugText}>
-                      {this.state.error.toString()}
-                    </Text>
+                    <Text style={styles.debugText}>{this.state.error.toString()}</Text>
                     {this.state.errorInfo && (
-                      <Text style={styles.debugText}>
-                        {this.state.errorInfo.componentStack}
-                      </Text>
+                      <Text style={styles.debugText}>{this.state.errorInfo.componentStack}</Text>
                     )}
                   </View>
                 </View>
@@ -104,9 +100,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
                 <Text style={styles.resetButtonText}>Try Again</Text>
               </TouchableOpacity>
 
-              <Text style={styles.helpText}>
-                If the problem persists, please restart the app
-              </Text>
+              <Text style={styles.helpText}>If the problem persists, please restart the app</Text>
             </View>
           </ScrollView>
         </View>

@@ -2,7 +2,7 @@ import * as SQLite from 'expo-sqlite';
 import { Expense } from '@/database/models/Expense';
 import { CategoryKeyword } from '@/database/models/CategoryKeyword';
 import { IDatabase } from '@/database/types';
-import { DEFAULT_CATEGORIES } from "@/constants/defaultCategories";
+import { DEFAULT_CATEGORIES } from '@/constants/defaultCategories';
 
 class DatabaseServiceNative implements IDatabase {
   private db: SQLite.SQLiteDatabase | null = null;
@@ -43,25 +43,61 @@ class DatabaseServiceNative implements IDatabase {
 
       // Create expenses table
       await this.db!.execAsync(
-        `CREATE TABLE IF NOT EXISTS expenses (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          category TEXT NOT NULL,
-          amount REAL NOT NULL,
-          date TEXT NOT NULL,
-          description TEXT
-        )`
+        `CREATE TABLE IF NOT EXISTS expenses
+         (
+             id
+             INTEGER
+             PRIMARY
+             KEY
+             AUTOINCREMENT,
+             category
+             TEXT
+             NOT
+             NULL,
+             amount
+             REAL
+             NOT
+             NULL,
+             date
+             TEXT
+             NOT
+             NULL,
+             description
+             TEXT
+         )`,
       );
 
       // Create category_keywords table
       await this.db!.execAsync(
-        `CREATE TABLE IF NOT EXISTS category_keywords (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          keyword TEXT NOT NULL UNIQUE,
-          category TEXT NOT NULL,
-          confidence INTEGER DEFAULT 1,
-          createdAt TEXT NOT NULL,
-          updatedAt TEXT NOT NULL
-        )`
+        `CREATE TABLE IF NOT EXISTS category_keywords
+         (
+             id
+             INTEGER
+             PRIMARY
+             KEY
+             AUTOINCREMENT,
+             keyword
+             TEXT
+             NOT
+             NULL
+             UNIQUE,
+             category
+             TEXT
+             NOT
+             NULL,
+             confidence
+             INTEGER
+             DEFAULT
+             1,
+             createdAt
+             TEXT
+             NOT
+             NULL,
+             updatedAt
+             TEXT
+             NOT
+             NULL
+         )`,
       );
 
       console.log('✅ SQLite: Tables created successfully');
@@ -81,7 +117,7 @@ class DatabaseServiceNative implements IDatabase {
     try {
       // Check if we already have keywords
       const existingCount = await this.db!.getFirstAsync<{ count: number }>(
-        'SELECT COUNT(*) as count FROM category_keywords'
+        'SELECT COUNT(*) as count FROM category_keywords',
       );
 
       if (existingCount && existingCount.count > 0) {
@@ -99,7 +135,7 @@ class DatabaseServiceNative implements IDatabase {
           try {
             await this.db!.runAsync(
               'INSERT INTO category_keywords (keyword, category, confidence, createdAt, updatedAt) VALUES (?, ?, 1, ?, ?)',
-              [keyword.toLowerCase().trim(), category, now, now]
+              [keyword.toLowerCase().trim(), category, now, now],
             );
             insertedCount++;
           } catch (error) {
@@ -126,7 +162,7 @@ class DatabaseServiceNative implements IDatabase {
 
       const result = await this.db!.runAsync(
         'INSERT INTO expenses (category, amount, date, description) VALUES (?, ?, ?, ?)',
-        [expense.category, expense.amount, expense.date, expense.description || null]
+        [expense.category, expense.amount, expense.date, expense.description || null],
       );
 
       console.log('✅ SQLite: Expense inserted with ID:', result.lastInsertRowId);
@@ -144,7 +180,7 @@ class DatabaseServiceNative implements IDatabase {
       console.log('📦 SQLite: Fetching all expenses...');
 
       const expenses = await this.db!.getAllAsync<Expense>(
-        'SELECT * FROM expenses ORDER BY date DESC'
+        'SELECT * FROM expenses ORDER BY date DESC',
       );
 
       console.log(`✅ SQLite: Fetched ${expenses.length} expenses`);
@@ -161,7 +197,7 @@ class DatabaseServiceNative implements IDatabase {
     try {
       const expenses = await this.db!.getAllAsync<Expense>(
         'SELECT * FROM expenses WHERE category = ? ORDER BY date DESC',
-        [category]
+        [category],
       );
 
       return expenses;
@@ -177,7 +213,7 @@ class DatabaseServiceNative implements IDatabase {
     try {
       const expenses = await this.db!.getAllAsync<Expense>(
         'SELECT * FROM expenses WHERE date BETWEEN ? AND ? ORDER BY date DESC',
-        [startDate, endDate]
+        [startDate, endDate],
       );
 
       return expenses;
@@ -192,7 +228,7 @@ class DatabaseServiceNative implements IDatabase {
 
     try {
       const result = await this.db!.getFirstAsync<{ total: number }>(
-        'SELECT SUM(amount) as total FROM expenses'
+        'SELECT SUM(amount) as total FROM expenses',
       );
       return result?.total || 0;
     } catch (error) {
@@ -207,7 +243,7 @@ class DatabaseServiceNative implements IDatabase {
     try {
       const result = await this.db!.getFirstAsync<{ total: number }>(
         'SELECT SUM(amount) as total FROM expenses WHERE category = ?',
-        [category]
+        [category],
       );
       return result?.total || 0;
     } catch (error) {
@@ -226,7 +262,7 @@ class DatabaseServiceNative implements IDatabase {
     try {
       await this.db!.runAsync(
         'UPDATE expenses SET category = ?, amount = ?, date = ?, description = ? WHERE id = ?',
-        [expense.category, expense.amount, expense.date, expense.description || null, expense.id]
+        [expense.category, expense.amount, expense.date, expense.description || null, expense.id],
       );
       console.log('✅ SQLite: Expense updated');
     } catch (error) {
@@ -271,7 +307,7 @@ class DatabaseServiceNative implements IDatabase {
       console.log('📦 SQLite: Fetching all category keywords...');
 
       const keywords = await this.db!.getAllAsync<CategoryKeyword>(
-        'SELECT * FROM category_keywords ORDER BY confidence DESC, keyword ASC'
+        'SELECT * FROM category_keywords ORDER BY confidence DESC, keyword ASC',
       );
 
       console.log(`✅ SQLite: Fetched ${keywords.length} category keywords`);
@@ -291,7 +327,7 @@ class DatabaseServiceNative implements IDatabase {
     try {
       const result = await this.db!.getFirstAsync<CategoryKeyword>(
         'SELECT * FROM category_keywords WHERE LOWER(keyword) = LOWER(?)',
-        [keyword]
+        [keyword],
       );
 
       return result || null;
@@ -320,22 +356,26 @@ class DatabaseServiceNative implements IDatabase {
           // Same category - increment confidence
           await this.db!.runAsync(
             'UPDATE category_keywords SET confidence = confidence + 1, updatedAt = ? WHERE id = ?',
-            [now, existing.id]
+            [now, existing.id],
           );
-          console.log(`✅ SQLite: Incremented confidence for "${normalizedKeyword}" -> ${category}`);
+          console.log(
+            `✅ SQLite: Incremented confidence for "${normalizedKeyword}" -> ${category}`,
+          );
         } else {
           // Different category - update and reset confidence
           await this.db!.runAsync(
             'UPDATE category_keywords SET category = ?, confidence = 1, updatedAt = ? WHERE id = ?',
-            [category, now, existing.id]
+            [category, now, existing.id],
           );
-          console.log(`✅ SQLite: Updated "${normalizedKeyword}" from ${existing.category} to ${category}`);
+          console.log(
+            `✅ SQLite: Updated "${normalizedKeyword}" from ${existing.category} to ${category}`,
+          );
         }
       } else {
         // New keyword - insert
         await this.db!.runAsync(
           'INSERT INTO category_keywords (keyword, category, confidence, createdAt, updatedAt) VALUES (?, ?, 1, ?, ?)',
-          [normalizedKeyword, category, now, now]
+          [normalizedKeyword, category, now, now],
         );
         console.log(`✅ SQLite: Created new keyword "${normalizedKeyword}" -> ${category}`);
       }
@@ -369,7 +409,7 @@ class DatabaseServiceNative implements IDatabase {
     try {
       const keywords = await this.db!.getAllAsync<CategoryKeyword>(
         'SELECT * FROM category_keywords WHERE category = ? ORDER BY confidence DESC',
-        [category]
+        [category],
       );
 
       return keywords;
@@ -391,9 +431,7 @@ class DatabaseServiceNative implements IDatabase {
       const keywords = await this.getAllCategoryKeywords();
 
       // Find matching keywords
-      const matches = keywords.filter(kw =>
-        lowerText.includes(kw.keyword.toLowerCase())
-      );
+      const matches = keywords.filter((kw) => lowerText.includes(kw.keyword.toLowerCase()));
 
       if (matches.length === 0) {
         return null;
@@ -402,7 +440,9 @@ class DatabaseServiceNative implements IDatabase {
       // Return category with highest confidence
       matches.sort((a, b) => b.confidence - a.confidence);
 
-      console.log(`✅ SQLite: Found learned category "${matches[0].category}" for text (confidence: ${matches[0].confidence})`);
+      console.log(
+        `✅ SQLite: Found learned category "${matches[0].category}" for text (confidence: ${matches[0].confidence})`,
+      );
       return matches[0].category;
     } catch (error) {
       console.error('❌ SQLite: Error searching learned category:', error);
@@ -437,15 +477,15 @@ class DatabaseServiceNative implements IDatabase {
 
     try {
       const totalResult = await this.db!.getFirstAsync<{ count: number }>(
-        'SELECT COUNT(*) as count FROM category_keywords'
+        'SELECT COUNT(*) as count FROM category_keywords',
       );
 
       const categoriesResult = await this.db!.getFirstAsync<{ count: number }>(
-        'SELECT COUNT(DISTINCT category) as count FROM category_keywords'
+        'SELECT COUNT(DISTINCT category) as count FROM category_keywords',
       );
 
       const avgResult = await this.db!.getFirstAsync<{ avg: number }>(
-        'SELECT AVG(confidence) as avg FROM category_keywords'
+        'SELECT AVG(confidence) as avg FROM category_keywords',
       );
 
       return {

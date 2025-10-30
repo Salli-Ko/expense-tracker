@@ -28,13 +28,16 @@ const CategoryManagement: React.FC = () => {
       setKeywords(allKeywords);
 
       // Group by category
-      const grouped = allKeywords.reduce((acc, keyword) => {
-        if (!acc[keyword.category]) {
-          acc[keyword.category] = [];
-        }
-        acc[keyword.category].push(keyword);
-        return acc;
-      }, {} as Record<string, CategoryKeyword[]>);
+      const grouped = allKeywords.reduce(
+        (acc, keyword) => {
+          if (!acc[keyword.category]) {
+            acc[keyword.category] = [];
+          }
+          acc[keyword.category].push(keyword);
+          return acc;
+        },
+        {} as Record<string, CategoryKeyword[]>,
+      );
 
       setGroupedKeywords(grouped);
       setIsLoading(false);
@@ -46,7 +49,7 @@ const CategoryManagement: React.FC = () => {
   };
 
   const toggleCategory = (category: string) => {
-    setExpandedCategories(prev => {
+    setExpandedCategories((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(category)) {
         newSet.delete(category);
@@ -79,7 +82,7 @@ const CategoryManagement: React.FC = () => {
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -122,8 +125,8 @@ const CategoryManagement: React.FC = () => {
       <View style={styles.infoBox}>
         <Text style={styles.infoTitle}>💡 How it works</Text>
         <Text style={styles.infoText}>
-          When you parse an SMS and change the category before saving, the app learns
-          your preference. Higher confidence means more consistent categorization.
+          When you parse an SMS and change the category before saving, the app learns your
+          preference. Higher confidence means more consistent categorization.
         </Text>
       </View>
 
@@ -144,31 +147,30 @@ const CategoryManagement: React.FC = () => {
               <Text style={styles.expandIcon}>{isExpanded ? '▼' : '▶'}</Text>
             </TouchableOpacity>
 
-            {isExpanded && categoryKeywords.map((keyword) => (
-              <View key={keyword.id} style={styles.keywordCard}>
-                <View style={styles.keywordInfo}>
-                  <Text style={styles.keywordText}>{keyword.keyword}</Text>
-                  <View style={styles.confidenceContainer}>
-                    <View
-                      style={[
-                        styles.confidenceBadge,
-                        { backgroundColor: getConfidenceColor(keyword.confidence) },
-                      ]}
-                    >
-                      <Text style={styles.confidenceText}>
-                        {keyword.confidence}x
-                      </Text>
+            {isExpanded &&
+              categoryKeywords.map((keyword) => (
+                <View key={keyword.id} style={styles.keywordCard}>
+                  <View style={styles.keywordInfo}>
+                    <Text style={styles.keywordText}>{keyword.keyword}</Text>
+                    <View style={styles.confidenceContainer}>
+                      <View
+                        style={[
+                          styles.confidenceBadge,
+                          { backgroundColor: getConfidenceColor(keyword.confidence) },
+                        ]}
+                      >
+                        <Text style={styles.confidenceText}>{keyword.confidence}x</Text>
+                      </View>
                     </View>
                   </View>
+                  <TouchableOpacity
+                    onPress={() => handleDeleteKeyword(keyword)}
+                    style={styles.deleteButton}
+                  >
+                    <Text style={styles.deleteButtonText}>🗑️</Text>
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                  onPress={() => handleDeleteKeyword(keyword)}
-                  style={styles.deleteButton}
-                >
-                  <Text style={styles.deleteButtonText}>🗑️</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
+              ))}
           </View>
         );
       })}

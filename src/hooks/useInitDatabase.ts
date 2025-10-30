@@ -58,11 +58,7 @@ export const useInitDatabase = (): UseInitDatabaseReturn => {
 
   const loadAllData = useCallback(async () => {
     try {
-      await Promise.all([
-        loadCategories(),
-        loadExpenses(),
-        loadTotalExpenses(),
-      ]);
+      await Promise.all([loadCategories(), loadExpenses(), loadTotalExpenses()]);
       console.log('✅ All data loaded successfully');
     } catch (error) {
       console.error('❌ Error loading data:', error);
@@ -115,8 +111,8 @@ export const useInitDatabase = (): UseInitDatabaseReturn => {
         'Failed to initialize database. Please restart the app or try again.',
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Retry', onPress: () => initDatabase() }
-        ]
+          { text: 'Retry', onPress: () => initDatabase() },
+        ],
       );
     }
   };

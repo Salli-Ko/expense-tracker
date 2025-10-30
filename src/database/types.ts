@@ -1,5 +1,5 @@
-import {Expense} from "@/database/models/Expense";
-import {CategoryKeyword} from "@/database/models/CategoryKeyword";
+import { Expense } from '@/database/models/Expense';
+import { CategoryKeyword } from '@/database/models/CategoryKeyword';
 
 export interface DatabaseParams {
   name: string;
@@ -18,19 +18,30 @@ export interface SQLiteResult {
 export interface IDatabase {
   // ==================== DATABASE MANAGEMENT ====================
   openDatabase(): Promise<any>;
+
   createTables(): Promise<void>;
+
   closeDatabase(): Promise<void>;
+
   isReady(): boolean;
 
   // ==================== EXPENSE METHODS ====================
   insertExpense(expense: Omit<Expense, 'id'>): Promise<number>;
+
   getAllExpenses(): Promise<Expense[]>;
+
   getExpensesByCategory(category: string): Promise<Expense[]>;
+
   getExpensesByDateRange(startDate: string, endDate: string): Promise<Expense[]>;
+
   getTotalExpenses(): Promise<number>;
+
   getTotalByCategory(category: string): Promise<number>;
+
   updateExpense(expense: Expense): Promise<void>;
+
   deleteExpense(id: number): Promise<void>;
+
   deleteAllExpenses(): Promise<void>;
 
   // ==================== CATEGORY KEYWORD METHODS ====================

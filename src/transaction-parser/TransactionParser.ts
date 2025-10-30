@@ -1,4 +1,5 @@
 import StorageService from '@/database/StorageService';
+import { DEFAULT_CATEGORIES } from '@/constants/defaultCategories';
 
 interface ParsedTransaction {
   category: string;
@@ -8,18 +9,6 @@ interface ParsedTransaction {
 }
 
 class TransactionParserService {
-  private readonly DEFAULT_CATEGORIES: Record<string, string[]> = {
-    Groceries: ['keells', 'cargills', 'arpico', 'laugfs', 'food city', 'spar'],
-    Fuel: ['ceypetco', 'shell', 'ioc', 'laughs', 'lanka ioc'],
-    Dining: ['kfc', 'pizza', 'mcdonalds', 'burger king', 'subway', 'restaurant', 'cafe', 'coffee'],
-    Transport: ['uber', 'pickme', 'kangaroo', 'taxi'],
-    Utilities: ['ceb', 'leco', 'water board', 'dialog', 'mobitel', 'hutch', 'airtel', 'slt'],
-    Healthcare: ['pharmacy', 'hospital', 'medical', 'clinic'],
-    Shopping: ['fashion bug', 'odel', 'nolimit', 'cotton collection'],
-    Entertainment: ['cinema', 'scope', 'savoy', 'liberty'],
-    Food: ['bakers'],
-  };
-
   async parse(smsText: string): Promise<ParsedTransaction> {
     const amount = this.extractAmount(smsText);
     const merchant = this.extractMerchant(smsText);
@@ -72,10 +61,7 @@ class TransactionParserService {
 
   private extractDate(text: string): Date {
     // Match patterns like: 25/10/25 or 25-10-2025 or 25/10/2025
-    const datePatterns = [
-      /(\d{2}\/\d{2}\/\d{2,4})/,
-      /(\d{2}-\d{2}-\d{2,4})/,
-    ];
+    const datePatterns = [/(\d{2}\/\d{2}\/\d{2,4})/, /(\d{2}-\d{2}-\d{2,4})/];
 
     for (const pattern of datePatterns) {
       const match = text.match(pattern);
@@ -84,7 +70,7 @@ class TransactionParserService {
         const parts = dateStr.split(/[/-]/);
 
         if (parts.length === 3) {
-          let [day, month, year] = parts.map(p => parseInt(p));
+          let [day, month, year] = parts.map((p) => parseInt(p));
 
           // Handle 2-digit year
           if (year < 100) {
@@ -134,8 +120,8 @@ class TransactionParserService {
     }
 
     // Fall back to default categories
-    for (const [category, keywords] of Object.entries(this.DEFAULT_CATEGORIES)) {
-      if (keywords.some(keyword => lowerText.includes(keyword))) {
+    for (const [category, keywords] of Object.entries(DEFAULT_CATEGORIES)) {
+      if (keywords.some((keyword) => lowerText.includes(keyword))) {
         return category;
       }
     }

@@ -1,7 +1,7 @@
 import { Expense } from '@/database/models/Expense';
 import { CategoryKeyword } from '@/database/models/CategoryKeyword';
 import { IDatabase } from '@/database/types';
-import { DEFAULT_CATEGORIES } from "@/constants/defaultCategories";
+import { DEFAULT_CATEGORIES } from '@/constants/defaultCategories';
 
 class DatabaseServiceWeb implements IDatabase {
   private db: IDBDatabase | null = null;
@@ -30,8 +30,8 @@ class DatabaseServiceWeb implements IDatabase {
         console.log('✅ IndexedDB: Database opened successfully');
 
         // Initialize default keywords if needed (async, don't wait)
-        this.initializeDefaultKeywords().catch(err =>
-          console.warn('⚠️ IndexedDB: Could not initialize default keywords:', err)
+        this.initializeDefaultKeywords().catch((err) =>
+          console.warn('⚠️ IndexedDB: Could not initialize default keywords:', err),
         );
 
         resolve(this.db);
@@ -410,7 +410,7 @@ class DatabaseServiceWeb implements IDatabase {
       const request = index.get(normalizedKeyword);
 
       request.onsuccess = () => {
-        resolve(request.result as CategoryKeyword || null);
+        resolve((request.result as CategoryKeyword) || null);
       };
 
       request.onerror = () => {
@@ -448,9 +448,13 @@ class DatabaseServiceWeb implements IDatabase {
 
           request.onsuccess = () => {
             if (existing.category === category) {
-              console.log(`✅ IndexedDB: Incremented confidence for "${normalizedKeyword}" -> ${category}`);
+              console.log(
+                `✅ IndexedDB: Incremented confidence for "${normalizedKeyword}" -> ${category}`,
+              );
             } else {
-              console.log(`✅ IndexedDB: Updated "${normalizedKeyword}" from ${existing.category} to ${category}`);
+              console.log(
+                `✅ IndexedDB: Updated "${normalizedKeyword}" from ${existing.category} to ${category}`,
+              );
             }
             resolve();
           };
@@ -549,9 +553,7 @@ class DatabaseServiceWeb implements IDatabase {
       const keywords = await this.getAllCategoryKeywords();
 
       // Find matching keywords
-      const matches = keywords.filter(kw =>
-        lowerText.includes(kw.keyword.toLowerCase())
-      );
+      const matches = keywords.filter((kw) => lowerText.includes(kw.keyword.toLowerCase()));
 
       if (matches.length === 0) {
         return null;
@@ -560,7 +562,9 @@ class DatabaseServiceWeb implements IDatabase {
       // Return category with highest confidence
       matches.sort((a, b) => b.confidence - a.confidence);
 
-      console.log(`✅ IndexedDB: Found learned category "${matches[0].category}" for text (confidence: ${matches[0].confidence})`);
+      console.log(
+        `✅ IndexedDB: Found learned category "${matches[0].category}" for text (confidence: ${matches[0].confidence})`,
+      );
       return matches[0].category;
     } catch (error) {
       console.error('❌ IndexedDB: Error searching learned category:', error);
@@ -603,7 +607,7 @@ class DatabaseServiceWeb implements IDatabase {
 
     try {
       const keywords = await this.getAllCategoryKeywords();
-      const uniqueCategories = new Set(keywords.map(k => k.category));
+      const uniqueCategories = new Set(keywords.map((k) => k.category));
       const totalConfidence = keywords.reduce((sum, k) => sum + k.confidence, 0);
 
       return {

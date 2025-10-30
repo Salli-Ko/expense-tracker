@@ -27,39 +27,31 @@ const HomeScreen: React.FC = () => {
     totalExpenses,
     categories,
     retryInit,
-    refreshExpenses
+    refreshExpenses,
   } = useInitDatabase();
 
   const handleDeleteExpense = async (id: number) => {
-    Alert.alert(
-      'Delete Expense',
-      'Are you sure you want to delete this expense?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await StorageService.deleteExpense(id);
-              await refreshExpenses();
-              Alert.alert('Success', 'Expense deleted');
-            } catch (error) {
-              console.error('Error deleting expense:', error);
-              Alert.alert('Error', 'Failed to delete expense');
-            }
-          },
+    Alert.alert('Delete Expense', 'Are you sure you want to delete this expense?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await StorageService.deleteExpense(id);
+            await refreshExpenses();
+            Alert.alert('Success', 'Expense deleted');
+          } catch (error) {
+            console.error('Error deleting expense:', error);
+            Alert.alert('Error', 'Failed to delete expense');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleEditExpense = (expense: Expense) => {
-    Alert.alert(
-      'Edit Mode',
-      'Edit functionality coming soon!',
-      [{ text: 'OK' }]
-    );
+    Alert.alert('Edit Mode', 'Edit functionality coming soon!', [{ text: 'OK' }]);
   };
 
   if (error && !isLoading) {
@@ -100,11 +92,7 @@ const HomeScreen: React.FC = () => {
         </View>
       </View>
 
-      <ExpenseForm
-        categories={categories}
-        isDbReady={isDbReady}
-        onExpenseAdded={refreshExpenses}
-      />
+      <ExpenseForm categories={categories} isDbReady={isDbReady} onExpenseAdded={refreshExpenses} />
 
       <View style={styles.expensesList}>
         <Text style={styles.subtitle}>Recent Expenses</Text>
