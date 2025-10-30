@@ -1,5 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 import { Expense } from '@/database/models/Expense';
+import { Category } from '@/database/models/Category';
 import { CategoryKeyword } from '@/database/models/CategoryKeyword';
 import { IDatabase } from '@/database/types';
 import { DEFAULT_CATEGORIES } from '@/constants/defaultCategories';
@@ -10,20 +11,17 @@ class DatabaseServiceNative implements IDatabase {
 
   async openDatabase(): Promise<SQLite.SQLiteDatabase> {
     if (this.db && this.isInitialized) {
-      console.log('📦 SQLite: Database already open');
       return this.db;
     }
 
     try {
-      console.log('📦 SQLite: Opening database...');
-
+      console.log('SQLite: Opening database...');
       this.db = await SQLite.openDatabaseAsync('expenseTracker.db');
-
       this.isInitialized = true;
-      console.log('✅ SQLite: Database opened successfully');
+      console.log('SQLite: Database opened successfully');
       return this.db;
     } catch (error) {
-      console.error('❌ SQLite: Error opening database:', error);
+      console.error('SQLite: Error opening database:', error);
       this.isInitialized = false;
       throw new Error(`Failed to open SQLite database: ${error}`);
     }
@@ -35,11 +33,61 @@ class DatabaseServiceNative implements IDatabase {
     }
   }
 
+  async clearDatabase(): Promise<void> {
+    this.ensureDbReady();
+
+    try {
+      console.log('SQLite: Clearing database...');
+
+      // Drop all tables
+      await this.db!.execAsync('DROP TABLE IF EXISTS category_keywords');
+      await this.db!.execAsync('DROP TABLE IF EXISTS expenses');
+      await this.db!.execAsync('DROP TABLE IF EXISTS categories');
+
+      console.log('SQLite: All tables dropped');
+
+      // Optionally recreate tables
+      // await this.createTables();
+    } catch (error) {
+      console.error('SQLite: Error clearing database:', error);
+      throw error;
+    }
+  }
+
   async createTables(): Promise<void> {
     this.ensureDbReady();
 
     try {
-      console.log('📦 SQLite: Creating tables...');
+      console.log('SQLite: Creating tables...');
+
+      // Create categories table
+      await this.db!.execAsync(
+        `CREATE TABLE IF NOT EXISTS categories
+         (
+             id
+             INTEGER
+             PRIMARY
+             KEY
+             AUTOINCREMENT,
+             name
+             TEXT
+             NOT
+             NULL
+             UNIQUE,
+             icon
+             TEXT,
+             color
+             TEXT,
+             createdAt
+             TEXT
+             NOT
+             NULL,
+             updatedAt
+             TEXT
+             NOT
+             NULL
+         )`,
+      );
 
       // Create expenses table
       await this.db!.execAsync(
@@ -70,85 +118,255 @@ class DatabaseServiceNative implements IDatabase {
       // Create category_keywords table
       await this.db!.execAsync(
         `CREATE TABLE IF NOT EXISTS category_keywords
+        (
+            id
+            INTEGER
+            PRIMARY
+            KEY
+            AUTOINCREMENT,
+            keyword
+            TEXT
+            NOT
+            NULL
+            UNIQUE,
+            categoryId
+            INTEGER
+            NOT
+            NULL,
+            confidence
+            INTEGER
+            DEFAULT
+            1,
+            createdAt
+            TEXT
+            NOT
+            NULL,
+            updatedAt
+            TEXT
+            NOT
+            NULL,
+            FOREIGN
+            KEY
+         (
+            categoryId
+         ) REFERENCES categories
          (
              id
-             INTEGER
-             PRIMARY
-             KEY
-             AUTOINCREMENT,
-             keyword
-             TEXT
-             NOT
-             NULL
-             UNIQUE,
-             category
-             TEXT
-             NOT
-             NULL,
-             confidence
-             INTEGER
-             DEFAULT
-             1,
-             createdAt
-             TEXT
-             NOT
-             NULL,
-             updatedAt
-             TEXT
-             NOT
-             NULL
-         )`,
+         ) ON DELETE CASCADE
+            )`,
       );
 
-      console.log('✅ SQLite: Tables created successfully');
+      console.log('SQLite: Tables created successfully');
 
-      // Initialize default keywords if table is empty
-      await this.initializeDefaultKeywords();
+      // Initialize default categories and keywords
+      await this.initializeDefaultCategories();
     } catch (error) {
-      console.error('❌ SQLite: Error creating tables:', error);
+      console.error('SQLite: Error creating tables:', error);
       throw error;
     }
   }
 
-  /**
-   * Initialize default category keywords if the table is empty
-   */
-  private async initializeDefaultKeywords(): Promise<void> {
+  private async initializeDefaultCategories(): Promise<void> {
     try {
-      // Check if we already have keywords
       const existingCount = await this.db!.getFirstAsync<{ count: number }>(
-        'SELECT COUNT(*) as count FROM category_keywords',
+        'SELECT COUNT(*) as count FROM categories',
       );
 
       if (existingCount && existingCount.count > 0) {
-        console.log('📦 SQLite: Category keywords already initialized');
+        console.log('SQLite: Categories already initialized');
         return;
       }
 
-      console.log('📦 SQLite: Initializing default category keywords...');
+      console.log('SQLite: Initializing default category keywords...');
       const now = new Date().toISOString();
-      let insertedCount = 0;
+      let categoryCount = 0;
+      let keywordCount = 0;
 
-      // Insert all default keywords
-      for (const [category, keywords] of Object.entries(DEFAULT_CATEGORIES)) {
-        for (const keyword of keywords) {
-          try {
-            await this.db!.runAsync(
-              'INSERT INTO category_keywords (keyword, category, confidence, createdAt, updatedAt) VALUES (?, ?, 1, ?, ?)',
-              [keyword.toLowerCase().trim(), category, now, now],
-            );
-            insertedCount++;
-          } catch (error) {
-            // Skip duplicates or errors
-            console.warn(`⚠️ SQLite: Could not insert keyword "${keyword}":`, error);
+      for (const [categoryName, keywords] of Object.entries(DEFAULT_CATEGORIES)) {
+        try {
+          // Insert category
+          const result = await this.db!.runAsync(
+            'INSERT INTO categories (name, createdAt, updatedAt) VALUES (?, ?, ?)',
+            [categoryName, now, now],
+          );
+
+          const categoryId = result.lastInsertRowId;
+          categoryCount++;
+
+          // Insert keywords for this category
+          for (const keyword of keywords) {
+            try {
+              await this.db!.runAsync(
+                'INSERT INTO category_keywords (keyword, categoryId, confidence, createdAt, updatedAt) VALUES (?, ?, 1, ?, ?)',
+                [keyword.toLowerCase().trim(), categoryId, now, now],
+              );
+              keywordCount++;
+            } catch (error) {
+              console.warn(`SQLite: Could not insert keyword "${keyword}"`);
+            }
           }
+        } catch (error) {
+          console.warn(`SQLite: Could not insert category "${categoryName}"`);
         }
       }
 
-      console.log(`✅ SQLite: Initialized ${insertedCount} default category keywords`);
+      console.log(`SQLite: Initialized ${categoryCount} categories and ${keywordCount} keywords`);
     } catch (error) {
-      console.error('❌ SQLite: Error initializing default keywords:', error);
-      // Don't throw - this is not critical for app functionality
+      console.error('SQLite: Error initializing default categories:', error);
+    }
+  }
+
+  // ==================== CATEGORY METHODS ====================
+
+  async getAllCategories(): Promise<Category[]> {
+    this.ensureDbReady();
+
+    try {
+      const categories = await this.db!.getAllAsync<Category>(
+        'SELECT * FROM categories ORDER BY name ASC',
+      );
+      return categories;
+    } catch (error) {
+      console.error('SQLite: Error getting categories:', error);
+      throw error;
+    }
+  }
+
+  async getCategoryById(id: number): Promise<Category | null> {
+    this.ensureDbReady();
+
+    try {
+      const category = await this.db!.getFirstAsync<Category>(
+        'SELECT * FROM categories WHERE id = ?',
+        [id],
+      );
+      return category || null;
+    } catch (error) {
+      console.error('SQLite: Error getting category by ID:', error);
+      throw error;
+    }
+  }
+
+  async getCategoryByName(name: string): Promise<Category | null> {
+    this.ensureDbReady();
+
+    try {
+      const category = await this.db!.getFirstAsync<Category>(
+        'SELECT * FROM categories WHERE LOWER(name) = LOWER(?)',
+        [name],
+      );
+      return category || null;
+    } catch (error) {
+      console.error('SQLite: Error getting category by name:', error);
+      throw error;
+    }
+  }
+
+  async insertCategory(category: Omit<Category, 'id'>, keywords?: string[]): Promise<Category> {
+    this.ensureDbReady();
+
+    try {
+      // Check if category already exists
+      const existing = await this.getCategoryByName(category.name);
+
+      if (existing && existing.id) {
+        console.log(`SQLite: Category "${category.name}" already exists with ID: ${existing.id}`);
+
+        // If keywords provided, add them to existing category
+        if (keywords && keywords.length > 0) {
+          const now = new Date().toISOString();
+          let addedCount = 0;
+
+          for (const keyword of keywords) {
+            try {
+              await this.saveCategoryKeyword(keyword.toLowerCase().trim(), existing.id);
+              addedCount++;
+            } catch (error) {
+              console.warn(`SQLite: Could not add keyword "${keyword}" to existing category`);
+            }
+          }
+
+          console.log(
+            `SQLite: Added ${addedCount} keyword(s) to existing category "${category.name}"`,
+          );
+        }
+
+        return existing;
+      }
+
+      // Insert new category
+      const result = await this.db!.runAsync(
+        'INSERT INTO categories (name, icon, color, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)',
+        [
+          category.name,
+          category.icon || null,
+          category.color || null,
+          category.createdAt,
+          category.updatedAt,
+        ],
+      );
+
+      const categoryId = result.lastInsertRowId;
+      console.log('SQLite: Category inserted with ID:', categoryId);
+
+      // Add keywords to new category
+      if (keywords && keywords.length > 0) {
+        const now = new Date().toISOString();
+        let addedCount = 0;
+
+        for (const keyword of keywords) {
+          try {
+            await this.saveCategoryKeyword(keyword.toLowerCase().trim(), categoryId);
+            addedCount++;
+          } catch (error) {
+            console.warn(`SQLite: Could not add keyword "${keyword}"`);
+          }
+        }
+
+        console.log(`SQLite: Added ${addedCount} keyword(s) to new category "${category.name}"`);
+      }
+
+      return categoryId;
+    } catch (error) {
+      console.error('SQLite: Error inserting category:', error);
+      throw error;
+    }
+  }
+
+  async updateCategory(category: Category): Promise<void> {
+    this.ensureDbReady();
+
+    if (!category.id) {
+      throw new Error('Category ID is required for update');
+    }
+
+    try {
+      await this.db!.runAsync(
+        'UPDATE categories SET name = ?, icon = ?, color = ?, updatedAt = ? WHERE id = ?',
+        [
+          category.name,
+          category.icon || null,
+          category.color || null,
+          category.updatedAt,
+          category.id,
+        ],
+      );
+      console.log('SQLite: Category updated');
+    } catch (error) {
+      console.error('SQLite: Error updating category:', error);
+      throw error;
+    }
+  }
+
+  async deleteCategory(id: number): Promise<void> {
+    this.ensureDbReady();
+
+    try {
+      await this.db!.runAsync('DELETE FROM categories WHERE id = ?', [id]);
+      console.log('SQLite: Category deleted (keywords cascade deleted)');
+    } catch (error) {
+      console.error('SQLite: Error deleting category:', error);
+      throw error;
     }
   }
 
@@ -158,17 +376,14 @@ class DatabaseServiceNative implements IDatabase {
     this.ensureDbReady();
 
     try {
-      console.log('📦 SQLite: Inserting expense:', expense);
-
       const result = await this.db!.runAsync(
         'INSERT INTO expenses (category, amount, date, description) VALUES (?, ?, ?, ?)',
         [expense.category, expense.amount, expense.date, expense.description || null],
       );
-
-      console.log('✅ SQLite: Expense inserted with ID:', result.lastInsertRowId);
+      console.log('SQLite: Expense inserted with ID:', result.lastInsertRowId);
       return result.lastInsertRowId;
     } catch (error) {
-      console.error('❌ SQLite: Error inserting expense:', error);
+      console.error('SQLite: Error inserting expense:', error);
       throw error;
     }
   }
@@ -177,16 +392,12 @@ class DatabaseServiceNative implements IDatabase {
     this.ensureDbReady();
 
     try {
-      console.log('📦 SQLite: Fetching all expenses...');
-
       const expenses = await this.db!.getAllAsync<Expense>(
         'SELECT * FROM expenses ORDER BY date DESC',
       );
-
-      console.log(`✅ SQLite: Fetched ${expenses.length} expenses`);
       return expenses;
     } catch (error) {
-      console.error('❌ SQLite: Error getting expenses:', error);
+      console.error('SQLite: Error getting expenses:', error);
       throw error;
     }
   }
@@ -199,10 +410,9 @@ class DatabaseServiceNative implements IDatabase {
         'SELECT * FROM expenses WHERE category = ? ORDER BY date DESC',
         [category],
       );
-
       return expenses;
     } catch (error) {
-      console.error('❌ SQLite: Error getting expenses by category:', error);
+      console.error('SQLite: Error getting expenses by category:', error);
       throw error;
     }
   }
@@ -215,10 +425,9 @@ class DatabaseServiceNative implements IDatabase {
         'SELECT * FROM expenses WHERE date BETWEEN ? AND ? ORDER BY date DESC',
         [startDate, endDate],
       );
-
       return expenses;
     } catch (error) {
-      console.error('❌ SQLite: Error getting expenses by date range:', error);
+      console.error('SQLite: Error getting expenses by date range:', error);
       throw error;
     }
   }
@@ -228,13 +437,13 @@ class DatabaseServiceNative implements IDatabase {
 
     try {
       const result = await this.db!.getFirstAsync<{ total: number }>(
-        `SELECT SUM(amount) as total 
-       FROM expenses
-       WHERE strftime('%Y-%m', date) = strftime('%Y-%m', 'now')`
+        `SELECT SUM(amount) as total
+         FROM expenses
+         WHERE strftime('%Y-%m', date) = strftime('%Y-%m', 'now')`,
       );
       return result?.total || 0;
     } catch (error) {
-      console.error('❌ SQLite: Error getting total expenses:', error);
+      console.error('SQLite: Error getting total expenses:', error);
       throw error;
     }
   }
@@ -249,7 +458,7 @@ class DatabaseServiceNative implements IDatabase {
       );
       return result?.total || 0;
     } catch (error) {
-      console.error('❌ SQLite: Error getting total by category:', error);
+      console.error('SQLite: Error getting total by category:', error);
       throw error;
     }
   }
@@ -266,9 +475,9 @@ class DatabaseServiceNative implements IDatabase {
         'UPDATE expenses SET category = ?, amount = ?, date = ?, description = ? WHERE id = ?',
         [expense.category, expense.amount, expense.date, expense.description || null, expense.id],
       );
-      console.log('✅ SQLite: Expense updated');
+      console.log('SQLite: Expense updated');
     } catch (error) {
-      console.error('❌ SQLite: Error updating expense:', error);
+      console.error('SQLite: Error updating expense:', error);
       throw error;
     }
   }
@@ -278,9 +487,9 @@ class DatabaseServiceNative implements IDatabase {
 
     try {
       await this.db!.runAsync('DELETE FROM expenses WHERE id = ?', [id]);
-      console.log('✅ SQLite: Expense deleted');
+      console.log('SQLite: Expense deleted');
     } catch (error) {
-      console.error('❌ SQLite: Error deleting expense:', error);
+      console.error('SQLite: Error deleting expense:', error);
       throw error;
     }
   }
@@ -290,39 +499,29 @@ class DatabaseServiceNative implements IDatabase {
 
     try {
       await this.db!.runAsync('DELETE FROM expenses');
-      console.log('✅ SQLite: All expenses deleted');
+      console.log('SQLite: All expenses deleted');
     } catch (error) {
-      console.error('❌ SQLite: Error deleting all expenses:', error);
+      console.error('SQLite: Error deleting all expenses:', error);
       throw error;
     }
   }
 
   // ==================== CATEGORY KEYWORD METHODS ====================
 
-  /**
-   * Get all learned category keywords
-   */
   async getAllCategoryKeywords(): Promise<CategoryKeyword[]> {
     this.ensureDbReady();
 
     try {
-      console.log('📦 SQLite: Fetching all category keywords...');
-
       const keywords = await this.db!.getAllAsync<CategoryKeyword>(
         'SELECT * FROM category_keywords ORDER BY confidence DESC, keyword ASC',
       );
-
-      console.log(`✅ SQLite: Fetched ${keywords.length} category keywords`);
       return keywords;
     } catch (error) {
-      console.error('❌ SQLite: Error getting category keywords:', error);
+      console.error('SQLite: Error getting category keywords:', error);
       throw error;
     }
   }
 
-  /**
-   * Find a category keyword by keyword string
-   */
   async findCategoryKeyword(keyword: string): Promise<CategoryKeyword | null> {
     this.ensureDbReady();
 
@@ -331,21 +530,14 @@ class DatabaseServiceNative implements IDatabase {
         'SELECT * FROM category_keywords WHERE LOWER(keyword) = LOWER(?)',
         [keyword],
       );
-
       return result || null;
     } catch (error) {
-      console.error('❌ SQLite: Error finding category keyword:', error);
+      console.error('SQLite: Error finding category keyword:', error);
       throw error;
     }
   }
 
-  /**
-   * Save or update a category keyword association
-   * If the keyword exists and category is different, update it
-   * If the keyword exists and category is same, increment confidence
-   * If the keyword doesn't exist, create it
-   */
-  async saveCategoryKeyword(keyword: string, category: string): Promise<void> {
+  async saveCategoryKeyword(keyword: string, categoryId: number): Promise<void> {
     this.ensureDbReady();
 
     try {
@@ -354,78 +546,67 @@ class DatabaseServiceNative implements IDatabase {
       const now = new Date().toISOString();
 
       if (existing) {
-        if (existing.category === category) {
+        if (existing.categoryId === categoryId) {
           // Same category - increment confidence
           await this.db!.runAsync(
             'UPDATE category_keywords SET confidence = confidence + 1, updatedAt = ? WHERE id = ?',
             [now, existing.id],
           );
           console.log(
-            `✅ SQLite: Incremented confidence for "${normalizedKeyword}" -> ${category}`,
+            `SQLite: Incremented confidence for "${normalizedKeyword}" -> category ${categoryId}`,
           );
         } else {
           // Different category - update and reset confidence
           await this.db!.runAsync(
-            'UPDATE category_keywords SET category = ?, confidence = 1, updatedAt = ? WHERE id = ?',
-            [category, now, existing.id],
+            'UPDATE category_keywords SET categoryId = ?, confidence = 1, updatedAt = ? WHERE id = ?',
+            [categoryId, now, existing.id],
           );
           console.log(
-            `✅ SQLite: Updated "${normalizedKeyword}" from ${existing.category} to ${category}`,
+            `SQLite: Updated "${normalizedKeyword}" from category ${existing.categoryId} to ${categoryId}`,
           );
         }
       } else {
         // New keyword - insert
         await this.db!.runAsync(
-          'INSERT INTO category_keywords (keyword, category, confidence, createdAt, updatedAt) VALUES (?, ?, 1, ?, ?)',
-          [normalizedKeyword, category, now, now],
+          'INSERT INTO category_keywords (keyword, categoryId, confidence, createdAt, updatedAt) VALUES (?, ?, 1, ?, ?)',
+          [normalizedKeyword, categoryId, now, now],
         );
-        console.log(`✅ SQLite: Created new keyword "${normalizedKeyword}" -> ${category}`);
+        console.log(`SQLite: Created new keyword "${normalizedKeyword}" -> category ${categoryId}`);
       }
     } catch (error) {
-      console.error('❌ SQLite: Error saving category keyword:', error);
+      console.error('SQLite: Error saving category keyword:', error);
       throw error;
     }
   }
 
-  /**
-   * Delete a category keyword by ID
-   */
   async deleteCategoryKeyword(id: number): Promise<void> {
     this.ensureDbReady();
 
     try {
       await this.db!.runAsync('DELETE FROM category_keywords WHERE id = ?', [id]);
-      console.log('✅ SQLite: Category keyword deleted');
+      console.log('SQLite: Category keyword deleted');
     } catch (error) {
-      console.error('❌ SQLite: Error deleting category keyword:', error);
+      console.error('SQLite: Error deleting category keyword:', error);
       throw error;
     }
   }
 
-  /**
-   * Get all keywords for a specific category
-   */
-  async getKeywordsForCategory(category: string): Promise<CategoryKeyword[]> {
+  async getKeywordsForCategory(categoryId: number): Promise<CategoryKeyword[]> {
     this.ensureDbReady();
 
     try {
       const keywords = await this.db!.getAllAsync<CategoryKeyword>(
-        'SELECT * FROM category_keywords WHERE category = ? ORDER BY confidence DESC',
-        [category],
+        'SELECT * FROM category_keywords WHERE categoryId = ? ORDER BY confidence DESC',
+        [categoryId],
       );
-
       return keywords;
     } catch (error) {
-      console.error('❌ SQLite: Error getting keywords for category:', error);
+      console.error('SQLite: Error getting keywords for category:', error);
       throw error;
     }
   }
 
-  /**
-   * Search for a category based on learned keywords in the given text
-   * Returns the category with highest confidence if found
-   */
-  async searchLearnedCategory(text: string): Promise<string | null> {
+  async searchLearnedCategory(text: string): Promise<number | null> {
     this.ensureDbReady();
 
     try {
@@ -439,37 +620,31 @@ class DatabaseServiceNative implements IDatabase {
         return null;
       }
 
-      // Return category with highest confidence
+      // Return categoryId with highest confidence
       matches.sort((a, b) => b.confidence - a.confidence);
 
       console.log(
-        `✅ SQLite: Found learned category "${matches[0].category}" for text (confidence: ${matches[0].confidence})`,
+        `SQLite: Found learned category ${matches[0].categoryId} for text (confidence: ${matches[0].confidence})`,
       );
-      return matches[0].category;
+      return matches[0].categoryId;
     } catch (error) {
-      console.error('❌ SQLite: Error searching learned category:', error);
+      console.error('SQLite: Error searching learned category:', error);
       throw error;
     }
   }
 
-  /**
-   * Delete all learned category keywords
-   */
   async deleteAllCategoryKeywords(): Promise<void> {
     this.ensureDbReady();
 
     try {
       await this.db!.runAsync('DELETE FROM category_keywords');
-      console.log('✅ SQLite: All category keywords deleted');
+      console.log('SQLite: All category keywords deleted');
     } catch (error) {
-      console.error('❌ SQLite: Error deleting all category keywords:', error);
+      console.error('SQLite: Error deleting all category keywords:', error);
       throw error;
     }
   }
 
-  /**
-   * Get statistics about learned keywords
-   */
   async getCategoryKeywordStats(): Promise<{
     totalKeywords: number;
     totalCategories: number;
@@ -483,7 +658,7 @@ class DatabaseServiceNative implements IDatabase {
       );
 
       const categoriesResult = await this.db!.getFirstAsync<{ count: number }>(
-        'SELECT COUNT(DISTINCT category) as count FROM category_keywords',
+        'SELECT COUNT(DISTINCT categoryId) as count FROM category_keywords',
       );
 
       const avgResult = await this.db!.getFirstAsync<{ avg: number }>(
@@ -496,7 +671,7 @@ class DatabaseServiceNative implements IDatabase {
         averageConfidence: avgResult?.avg || 0,
       };
     } catch (error) {
-      console.error('❌ SQLite: Error getting keyword stats:', error);
+      console.error('SQLite: Error getting keyword stats:', error);
       throw error;
     }
   }
@@ -506,7 +681,7 @@ class DatabaseServiceNative implements IDatabase {
   async closeDatabase(): Promise<void> {
     if (this.db) {
       await this.db.closeAsync();
-      console.log('✅ SQLite: Database closed');
+      console.log('SQLite: Database closed');
       this.db = null;
       this.isInitialized = false;
     }
@@ -517,5 +692,4 @@ class DatabaseServiceNative implements IDatabase {
   }
 }
 
-// Export instance
 export default new DatabaseServiceNative();

@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
 import StorageService from '@/database/StorageService';
-import { Expense, ExpenseCategory } from '@/database/models/Expense';
+import { Expense } from '@/database/models/Expense';
+import { Category } from '@/database/models/Category';
 
 interface UseInitDatabaseReturn {
   isDbReady: boolean;
@@ -9,9 +10,10 @@ interface UseInitDatabaseReturn {
   error: string;
   expenses: Expense[];
   totalExpenses: number;
-  categories: string[];
+  categories: Category[];
   retryInit: () => Promise<void>;
   refreshExpenses: () => Promise<void>;
+  refetchCategories: () => Promise<void>;
 }
 
 export const useInitDatabase = (): UseInitDatabaseReturn => {
@@ -22,15 +24,14 @@ export const useInitDatabase = (): UseInitDatabaseReturn => {
   // Data states
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [totalExpenses, setTotalExpenses] = useState<number>(0);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   const loadCategories = useCallback(async () => {
     try {
-      const allCategories = Object.values(ExpenseCategory);
+      const allCategories = await StorageService.getAllCategories();
       setCategories(allCategories);
-      console.log('✅ Loaded categories:', allCategories.length);
     } catch (error) {
-      console.error('❌ Error loading categories:', error);
+      console.error('Error loading categories:', error);
     }
   }, []);
 
@@ -38,9 +39,8 @@ export const useInitDatabase = (): UseInitDatabaseReturn => {
     try {
       const expenseList = await StorageService.getAllExpenses();
       setExpenses(expenseList);
-      console.log('✅ Loaded expenses:', expenseList.length);
     } catch (error) {
-      console.error('❌ Error loading expenses:', error);
+      console.error('Error loading expenses:', error);
       throw error;
     }
   }, []);
@@ -49,9 +49,8 @@ export const useInitDatabase = (): UseInitDatabaseReturn => {
     try {
       const total = await StorageService.getTotalExpenses();
       setTotalExpenses(total);
-      console.log('✅ Total expenses:', total);
     } catch (error) {
-      console.error('❌ Error loading total expenses:', error);
+      console.error('Error loading total expenses:', error);
       throw error;
     }
   }, []);
@@ -59,9 +58,8 @@ export const useInitDatabase = (): UseInitDatabaseReturn => {
   const loadAllData = useCallback(async () => {
     try {
       await Promise.all([loadCategories(), loadExpenses(), loadTotalExpenses()]);
-      console.log('✅ All data loaded successfully');
     } catch (error) {
-      console.error('❌ Error loading data:', error);
+      console.error('Error loading data:', error);
       Alert.alert('Error', 'Failed to load expenses data');
     }
   }, [loadCategories, loadExpenses, loadTotalExpenses]);
@@ -70,9 +68,8 @@ export const useInitDatabase = (): UseInitDatabaseReturn => {
     try {
       await loadExpenses();
       await loadTotalExpenses();
-      console.log('✅ Expenses refreshed');
     } catch (error) {
-      console.error('❌ Error refreshing expenses:', error);
+      console.error('Error refreshing expenses:', error);
       Alert.alert('Error', 'Failed to refresh expenses');
     }
   }, [loadExpenses, loadTotalExpenses]);
@@ -82,25 +79,22 @@ export const useInitDatabase = (): UseInitDatabaseReturn => {
       setIsLoading(true);
       setError('');
 
-      console.log('🔄 Initializing database...');
-
       // Open database
       await StorageService.openDatabase();
 
-      // Create tables (expenses and category_keywords)
-      // This will also initialize default keywords if needed
+      // Create tables (categories, expenses, and category_keywords)
+      // This will also initialize default categories and keywords
       await StorageService.createTables();
 
-      console.log('✅ Database initialized successfully');
+      console.log('Database initialized successfully');
 
-      // Load initial data
       await loadAllData();
 
       setIsDbReady(true);
       setIsLoading(false);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      console.error('❌ Database initialization failed:', errorMessage);
+      console.error('Database initialization failed:', errorMessage);
 
       setError(errorMessage);
       setIsLoading(false);
@@ -112,7 +106,7 @@ export const useInitDatabase = (): UseInitDatabaseReturn => {
         [
           { text: 'Cancel', style: 'cancel' },
           { text: 'Retry', onPress: () => initDatabase() },
-        ],
+        ]
       );
     }
   };
@@ -129,8 +123,8 @@ export const useInitDatabase = (): UseInitDatabaseReturn => {
     return () => {
       if (StorageService.isReady()) {
         StorageService.closeDatabase()
-          .then(() => console.log('✅ Database closed on cleanup'))
-          .catch((err) => console.error('❌ Error closing database:', err));
+          .then(() => console.log('Database closed on cleanup'))
+          .catch((err) => console.error('Error closing database:', err));
       }
     };
   }, []);
@@ -144,5 +138,6 @@ export const useInitDatabase = (): UseInitDatabaseReturn => {
     categories,
     retryInit,
     refreshExpenses,
+    refetchCategories: loadCategories,
   };
 };

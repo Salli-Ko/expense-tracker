@@ -2,7 +2,8 @@ import StorageService from '@/database/StorageService';
 import { DEFAULT_CATEGORIES } from '@/constants/defaultCategories';
 
 interface ParsedTransaction {
-  category: string;
+  categoryId: number | null; // Changed from category: string
+  categoryName: string; // Keep for display purposes
   amount: number;
   date: Date;
   merchant?: string;
@@ -13,10 +14,11 @@ class TransactionParserService {
     const amount = this.extractAmount(smsText);
     const merchant = this.extractMerchant(smsText);
     const date = this.extractDate(smsText);
-    const category = await this.categorize(merchant || smsText);
+    const { categoryId, categoryName } = await this.categorize(merchant || smsText);
 
     return {
-      category,
+      categoryId,
+      categoryName,
       amount,
       date,
       merchant,
@@ -108,39 +110,68 @@ class TransactionParserService {
   /**
    * Categorize text using both learned keywords and default categories
    * Priority: Learned keywords > Default keywords
+   * @returns categoryId and categoryName
    */
-  private async categorize(text: string): Promise<string> {
+  private async categorize(text: string): Promise<{ categoryId: number | null; categoryName: string }> {
     const lowerText = text.toLowerCase();
 
     // First, try to find a learned category
     try {
-      const learnedCategory = await StorageService.searchLearnedCategory(text);
-      if (learnedCategory) {
-        return learnedCategory;
+      const learnedCategoryId = await StorageService.searchLearnedCategory(text);
+      if (learnedCategoryId) {
+        // Get the category name from ID
+        const category = await StorageService.getCategoryById(learnedCategoryId);
+        if (category) {
+          console.log(`Found learned category: ${category.name} (ID: ${learnedCategoryId})`);
+          return { categoryId: learnedCategoryId, categoryName: category.name };
+        }
       }
     } catch (error) {
       console.error('Error searching learned categories:', error);
       // Continue to default categories if there's an error
     }
 
-    // Fall back to default categories
-    for (const [category, keywords] of Object.entries(DEFAULT_CATEGORIES)) {
+    // Fall back to default categories - find by name
+    for (const [categoryName, keywords] of Object.entries(DEFAULT_CATEGORIES)) {
       if (keywords.some((keyword) => lowerText.includes(keyword))) {
-        return category;
+        // Find the category ID from the database
+        try {
+          const category = await StorageService.getCategoryByName(categoryName);
+          if (category?.id) {
+            console.log(`Found default category: ${categoryName} (ID: ${category.id})`);
+            return { categoryId: category.id, categoryName };
+          }
+        } catch (error) {
+          console.error(`Error finding category ${categoryName}:`, error);
+        }
+        // If we can't find the ID, still return the name
+        return { categoryId: null, categoryName };
       }
     }
 
-    return 'Other';
+    // Try to find "Other" category
+    try {
+      const otherCategory = await StorageService.getCategoryByName('Other');
+      if (otherCategory?.id) {
+        return { categoryId: otherCategory.id, categoryName: 'Other' };
+      }
+    } catch (error) {
+      console.error('Error finding Other category:', error);
+    }
+
+    return { categoryId: null, categoryName: 'Other' };
   }
 
   /**
    * Learn a new merchant-category association
+   * This method is no longer needed - use StorageService.saveCategoryKeyword directly
+   * @deprecated
    */
-  async learnCategory(merchant: string, category: string): Promise<void> {
-    if (!merchant || !category) return;
+  async learnCategory(merchant: string, categoryId: number): Promise<void> {
+    if (!merchant || !categoryId) return;
 
     try {
-      await StorageService.saveCategoryKeyword(merchant.toLowerCase(), category);
+      await StorageService.saveCategoryKeyword(merchant.toLowerCase(), categoryId);
     } catch (error) {
       console.error('Error learning category:', error);
       throw error;

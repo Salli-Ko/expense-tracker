@@ -28,6 +28,7 @@ const HomeScreen: React.FC = () => {
     categories,
     retryInit,
     refreshExpenses,
+    refetchCategories,
   } = useInitDatabase();
 
   const handleDeleteExpense = async (id: number) => {
@@ -92,7 +93,12 @@ const HomeScreen: React.FC = () => {
         </View>
       </View>
 
-      <ExpenseForm categories={categories} isDbReady={isDbReady} onExpenseAdded={refreshExpenses} />
+      <ExpenseForm
+        categories={categories}
+        isDbReady={isDbReady}
+        onExpenseAdded={refreshExpenses}
+        refetchCategories={refetchCategories}
+      />
 
       <View style={styles.expensesList}>
         <Text style={styles.subtitle}>Recent Expenses</Text>

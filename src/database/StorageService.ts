@@ -5,6 +5,6 @@
 // For iOS/Android: imports from DatabaseService.native.ts
 import DatabaseService from './DatabaseService';
 
-console.log('📦 StorageService loaded (platform-specific)');
+console.log('StorageService loaded (platform-specific)');
 
 export default DatabaseService;

@@ -1,13 +1,15 @@
-import { Expense } from '@/database/models/Expense';
-import { CategoryKeyword } from '@/database/models/CategoryKeyword';
-import { IDatabase } from '@/database/types';
-import { DEFAULT_CATEGORIES } from '@/constants/defaultCategories';
+import {Expense} from '@/database/models/Expense';
+import {Category} from '@/database/models/Category';
+import {CategoryKeyword} from '@/database/models/CategoryKeyword';
+import {IDatabase} from '@/database/types';
+import {DEFAULT_CATEGORIES} from '@/constants/defaultCategories';
 
 class DatabaseServiceWeb implements IDatabase {
   private db: IDBDatabase | null = null;
   private isInitialized: boolean = false;
   private readonly DB_NAME = 'ExpenseTrackerDB';
-  private readonly DB_VERSION = 2; // Incremented for category_keywords store
+  private readonly DB_VERSION = 3;
+  private readonly CATEGORIES_STORE = 'categories';
   private readonly EXPENSES_STORE = 'expenses';
   private readonly KEYWORDS_STORE = 'category_keywords';
 
@@ -20,18 +22,18 @@ class DatabaseServiceWeb implements IDatabase {
       const request = indexedDB.open(this.DB_NAME, this.DB_VERSION);
 
       request.onerror = () => {
-        console.error('❌ IndexedDB: Error opening database:', request.error);
+        console.error('IndexedDB: Error opening database:', request.error);
         reject(request.error);
       };
 
       request.onsuccess = () => {
         this.db = request.result;
         this.isInitialized = true;
-        console.log('✅ IndexedDB: Database opened successfully');
+        console.log('IndexedDB: Database opened successfully');
 
-        // Initialize default keywords if needed (async, don't wait)
-        this.initializeDefaultKeywords().catch((err) =>
-          console.warn('⚠️ IndexedDB: Could not initialize default keywords:', err),
+        // Initialize default categories if needed
+        this.initializeDefaultCategories().catch((err) =>
+          console.warn('IndexedDB: Could not initialize default categories:', err),
         );
 
         resolve(this.db);
@@ -41,7 +43,17 @@ class DatabaseServiceWeb implements IDatabase {
         const db = (event.target as IDBOpenDBRequest).result;
         const oldVersion = event.oldVersion;
 
-        console.log(`📦 IndexedDB: Upgrading from version ${oldVersion} to ${this.DB_VERSION}`);
+        console.log(`IndexedDB: Upgrading from version ${oldVersion} to ${this.DB_VERSION}`);
+
+        // Create categories store
+        if (!db.objectStoreNames.contains(this.CATEGORIES_STORE)) {
+          const categoriesStore = db.createObjectStore(this.CATEGORIES_STORE, {
+            keyPath: 'id',
+            autoIncrement: true,
+          });
+          categoriesStore.createIndex('name', 'name', {unique: true});
+          console.log('IndexedDB: Categories store created');
+        }
 
         // Create expenses store
         if (!db.objectStoreNames.contains(this.EXPENSES_STORE)) {
@@ -49,12 +61,9 @@ class DatabaseServiceWeb implements IDatabase {
             keyPath: 'id',
             autoIncrement: true,
           });
-
-          // Create indexes for faster queries
-          expensesStore.createIndex('category', 'category', { unique: false });
-          expensesStore.createIndex('date', 'date', { unique: false });
-
-          console.log('✅ IndexedDB: Expenses store created');
+          expensesStore.createIndex('category', 'category', {unique: false});
+          expensesStore.createIndex('date', 'date', {unique: false});
+          console.log('IndexedDB: Expenses store created');
         }
 
         // Create category_keywords store
@@ -63,13 +72,10 @@ class DatabaseServiceWeb implements IDatabase {
             keyPath: 'id',
             autoIncrement: true,
           });
-
-          // Create indexes
-          keywordsStore.createIndex('keyword', 'keyword', { unique: true });
-          keywordsStore.createIndex('category', 'category', { unique: false });
-          keywordsStore.createIndex('confidence', 'confidence', { unique: false });
-
-          console.log('✅ IndexedDB: Category keywords store created');
+          keywordsStore.createIndex('keyword', 'keyword', {unique: true});
+          keywordsStore.createIndex('categoryId', 'categoryId', {unique: false});
+          keywordsStore.createIndex('confidence', 'confidence', {unique: false});
+          console.log('IndexedDB: Category keywords store created');
         }
       };
     });
@@ -83,120 +89,283 @@ class DatabaseServiceWeb implements IDatabase {
 
   async createTables(): Promise<void> {
     // Tables are created in openDatabase's onupgradeneeded
-    // Initialize default keywords if needed
-    await this.initializeDefaultKeywords();
+    await this.initializeDefaultCategories();
     return Promise.resolve();
   }
 
-  /**
-   * Initialize default category keywords if database is empty
-   */
-  private async initializeDefaultKeywords(): Promise<void> {
-    this.ensureDbReady();
-
-    try {
-      const existingKeywords = await this.getAllCategoryKeywords();
-
-      if (existingKeywords.length > 0) {
-        console.log('✅ IndexedDB: Keywords already exist, skipping initialization');
-        return;
-      }
-
-      console.log('📦 IndexedDB: Initializing default category keywords...');
-
-      const now = new Date().toISOString();
-      const promises: Promise<void>[] = [];
-
-      for (const [category, keywords] of Object.entries(DEFAULT_CATEGORIES)) {
-        for (const keyword of keywords) {
-          const categoryKeyword: Omit<CategoryKeyword, 'id'> = {
-            keyword: keyword.toLowerCase().trim(),
-            category,
-            confidence: 1,
-            createdAt: now,
-            updatedAt: now,
-          };
-
-          const promise = new Promise<void>((resolve, reject) => {
-            const transaction = this.db!.transaction([this.KEYWORDS_STORE], 'readwrite');
-            const store = transaction.objectStore(this.KEYWORDS_STORE);
-            const request = store.add(categoryKeyword);
-
-            request.onsuccess = () => resolve();
-            request.onerror = () => reject(request.error);
-          });
-
-          promises.push(promise);
-        }
-      }
-
-      await Promise.all(promises);
-      console.log(`✅ IndexedDB: Initialized ${promises.length} default keywords`);
-    } catch (error) {
-      console.error('❌ IndexedDB: Error initializing default keywords:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Initialize default category keywords if the table is empty
-   */
-  private async initializeDefaultKeywords(): Promise<void> {
+  private async initializeDefaultCategories(): Promise<void> {
     if (!this.isReady()) {
       return;
     }
 
     try {
-      // Check if we already have keywords
-      const existingKeywords = await this.getAllCategoryKeywords();
+      const existingCategories = await this.getAllCategories();
 
-      if (existingKeywords.length > 0) {
-        console.log('📦 IndexedDB: Category keywords already initialized');
+      if (existingCategories.length > 0) {
+        console.log('IndexedDB: Categories already initialized');
         return;
       }
 
-      console.log('📦 IndexedDB: Initializing default category keywords...');
+      console.log('IndexedDB: Initializing default categories and keywords...');
       const now = new Date().toISOString();
-      let insertedCount = 0;
+      let categoryCount = 0;
+      let keywordCount = 0;
 
-      // Insert all default keywords
-      const transaction = this.db!.transaction([this.KEYWORDS_STORE], 'readwrite');
-      const store = transaction.objectStore(this.KEYWORDS_STORE);
+      for (const [categoryName, keywords] of Object.entries(DEFAULT_CATEGORIES)) {
+        try {
+          // Insert category
+          const savedCategory = await this.insertCategory({
+            name: categoryName,
+            createdAt: now,
+            updatedAt: now,
+          });
+          categoryCount++;
 
-      for (const [category, keywords] of Object.entries(DEFAULT_CATEGORIES)) {
-        for (const keyword of keywords) {
-          try {
-            const newKeyword: Omit<CategoryKeyword, 'id'> = {
-              keyword: keyword.toLowerCase().trim(),
-              category,
-              confidence: 1,
-              createdAt: now,
-              updatedAt: now,
-            };
+          // Insert keywords for this category
+          const transaction = this.db!.transaction([this.KEYWORDS_STORE], 'readwrite');
+          const store = transaction.objectStore(this.KEYWORDS_STORE);
 
-            store.add(newKeyword);
-            insertedCount++;
-          } catch (error) {
-            // Skip duplicates or errors
-            console.warn(`⚠️ IndexedDB: Could not insert keyword "${keyword}"`);
+          for (const keyword of keywords) {
+            try {
+              const newKeyword: Omit<CategoryKeyword, 'id'> = {
+                keyword: keyword.toLowerCase().trim(),
+                savedCategory.id,
+                confidence: 1,
+                createdAt: now,
+                updatedAt: now,
+              };
+              store.add(newKeyword);
+              keywordCount++;
+            } catch (error) {
+              console.warn(`IndexedDB: Could not insert keyword "${keyword}"`);
+            }
           }
+
+          await new Promise<void>((resolve, reject) => {
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = () => reject(transaction.error);
+          });
+        } catch (error) {
+          console.warn(`IndexedDB: Could not insert category "${categoryName}"`);
         }
       }
 
-      await new Promise<void>((resolve, reject) => {
-        transaction.oncomplete = () => {
-          console.log(`✅ IndexedDB: Initialized ${insertedCount} default category keywords`);
-          resolve();
+      console.log(
+        `IndexedDB: Initialized ${categoryCount} categories and ${keywordCount} keywords`,
+      );
+    } catch (error) {
+      console.error('IndexedDB: Error initializing default categories:', error);
+    }
+  }
+
+  // ==================== CATEGORY METHODS ====================
+
+  async getAllCategories(): Promise<Category[]> {
+    this.ensureDbReady();
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.CATEGORIES_STORE], 'readonly');
+      const store = transaction.objectStore(this.CATEGORIES_STORE);
+      const request = store.getAll();
+
+      request.onsuccess = () => {
+        const categories = request.result as Category[];
+        categories.sort((a, b) => a.name.localeCompare(b.name));
+        resolve(categories);
+      };
+
+      request.onerror = () => {
+        console.error('IndexedDB: Error getting categories:', request.error);
+        reject(request.error);
+      };
+    });
+  }
+
+  async getCategoryById(id: number): Promise<Category | null> {
+    this.ensureDbReady();
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.CATEGORIES_STORE], 'readonly');
+      const store = transaction.objectStore(this.CATEGORIES_STORE);
+      const request = store.get(id);
+
+      request.onsuccess = () => {
+        resolve((request.result as Category) || null);
+      };
+
+      request.onerror = () => {
+        console.error('IndexedDB: Error getting category by ID:', request.error);
+        reject(request.error);
+      };
+    });
+  }
+
+  async getCategoryByName(name: string): Promise<Category | null> {
+    this.ensureDbReady();
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.CATEGORIES_STORE], 'readonly');
+      const store = transaction.objectStore(this.CATEGORIES_STORE);
+      const request = store.getAll();
+
+      request.onsuccess = () => {
+        const categories = request.result as Category[];
+        // Case-insensitive search
+        const category = categories.find((c) => c.name.toLowerCase() === name.toLowerCase());
+        resolve(category || null);
+      };
+
+      request.onerror = () => {
+        console.error('IndexedDB: Error getting category by name:', request.error);
+        reject(request.error);
+      };
+    });
+  }
+
+  async insertCategory(
+    category: Omit<Category, 'id'>,
+    keywords?: string[]
+  ): Promise<Category> {
+    this.ensureDbReady();
+
+    try {
+      // Check if category already exists
+      const existing = await this.getCategoryByName(category.name);
+
+      if (existing && existing.id) {
+        console.log(`IndexedDB: Category "${category.name}" already exists with ID: ${existing.id}`);
+
+        // If keywords provided, add them to existing category
+        if (keywords && keywords.length > 0) {
+          let addedCount = 0;
+
+          for (const keyword of keywords) {
+            try {
+              await this.saveCategoryKeyword(keyword.toLowerCase().trim(), existing.id);
+              addedCount++;
+            } catch (error) {
+              console.warn(`IndexedDB: Could not add keyword "${keyword}" to existing category`);
+            }
+          }
+
+          console.log(`IndexedDB: Added ${addedCount} keyword(s) to existing category "${category.name}"`);
+        }
+
+        return existing;
+      }
+
+      // Insert new category
+      const categoryId = await new Promise<number>((resolve, reject) => {
+        const transaction = this.db!.transaction([this.CATEGORIES_STORE], 'readwrite');
+        const store = transaction.objectStore(this.CATEGORIES_STORE);
+        const request = store.add(category);
+
+        request.onsuccess = () => {
+          console.log('IndexedDB: Category inserted with ID:', request.result);
+          resolve(request.result as number);
         };
-        transaction.onerror = () => {
-          console.warn('⚠️ IndexedDB: Error during default keywords initialization');
-          reject(transaction.error);
+
+        request.onerror = () => {
+          console.error('IndexedDB: Error inserting category:', request.error);
+          reject(request.error);
         };
       });
+
+      // Add keywords to new category
+      if (keywords && keywords.length > 0) {
+        let addedCount = 0;
+
+        for (const keyword of keywords) {
+          try {
+            await this.saveCategoryKeyword(keyword.toLowerCase().trim(), categoryId);
+            addedCount++;
+          } catch (error) {
+            console.warn(`IndexedDB: Could not add keyword "${keyword}"`);
+          }
+        }
+
+        console.log(`IndexedDB: Added ${addedCount} keyword(s) to new category "${category.name}"`);
+      }
+
+      // Return the complete category object
+      const newCategory: Category = {
+        id: categoryId,
+        name: category.name,
+        icon: category.icon,
+        color: category.color,
+        createdAt: category.createdAt,
+        updatedAt: category.updatedAt,
+      };
+
+      return newCategory;
     } catch (error) {
-      console.error('❌ IndexedDB: Error initializing default keywords:', error);
-      // Don't throw - this is not critical for app functionality
+      console.error('IndexedDB: Error inserting category:', error);
+      throw error;
     }
+  }
+
+  async updateCategory(category: Category): Promise<void> {
+    this.ensureDbReady();
+
+    if (!category.id) {
+      throw new Error('Category ID is required for update');
+    }
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.CATEGORIES_STORE], 'readwrite');
+      const store = transaction.objectStore(this.CATEGORIES_STORE);
+      const request = store.put(category);
+
+      request.onsuccess = () => {
+        console.log('IndexedDB: Category updated');
+        resolve();
+      };
+
+      request.onerror = () => {
+        console.error('IndexedDB: Error updating category:', request.error);
+        reject(request.error);
+      };
+    });
+  }
+
+  async deleteCategory(id: number): Promise<void> {
+    this.ensureDbReady();
+
+    return new Promise(async (resolve, reject) => {
+      try {
+        // First delete all keywords for this category
+        const keywords = await this.getKeywordsForCategory(id);
+        const transaction = this.db!.transaction(
+          [this.CATEGORIES_STORE, this.KEYWORDS_STORE],
+          'readwrite',
+        );
+
+        // Delete keywords
+        const keywordsStore = transaction.objectStore(this.KEYWORDS_STORE);
+        for (const keyword of keywords) {
+          if (keyword.id) {
+            keywordsStore.delete(keyword.id);
+          }
+        }
+
+        // Delete category
+        const categoriesStore = transaction.objectStore(this.CATEGORIES_STORE);
+        categoriesStore.delete(id);
+
+        transaction.oncomplete = () => {
+          console.log('IndexedDB: Category and its keywords deleted');
+          resolve();
+        };
+
+        transaction.onerror = () => {
+          console.error('IndexedDB: Error deleting category:', transaction.error);
+          reject(transaction.error);
+        };
+      } catch (error) {
+        console.error('IndexedDB: Error in deleteCategory:', error);
+        reject(error);
+      }
+    });
   }
 
   // ==================== EXPENSE METHODS ====================
@@ -210,12 +379,12 @@ class DatabaseServiceWeb implements IDatabase {
       const request = store.add(expense);
 
       request.onsuccess = () => {
-        console.log('✅ IndexedDB: Expense inserted with ID:', request.result);
+        console.log('IndexedDB: Expense inserted with ID:', request.result);
         resolve(request.result as number);
       };
 
       request.onerror = () => {
-        console.error('❌ IndexedDB: Error inserting expense:', request.error);
+        console.error('IndexedDB: Error inserting expense:', request.error);
         reject(request.error);
       };
     });
@@ -231,14 +400,12 @@ class DatabaseServiceWeb implements IDatabase {
 
       request.onsuccess = () => {
         const expenses = request.result as Expense[];
-        // Sort by date descending
         expenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        console.log(`✅ IndexedDB: Fetched ${expenses.length} expenses`);
         resolve(expenses);
       };
 
       request.onerror = () => {
-        console.error('❌ IndexedDB: Error getting expenses:', request.error);
+        console.error('IndexedDB: Error getting expenses:', request.error);
         reject(request.error);
       };
     });
@@ -260,7 +427,7 @@ class DatabaseServiceWeb implements IDatabase {
       };
 
       request.onerror = () => {
-        console.error('❌ IndexedDB: Error getting expenses by category:', request.error);
+        console.error('IndexedDB: Error getting expenses by category:', request.error);
         reject(request.error);
       };
     });
@@ -283,7 +450,7 @@ class DatabaseServiceWeb implements IDatabase {
       };
 
       request.onerror = () => {
-        console.error('❌ IndexedDB: Error getting expenses by date range:', request.error);
+        console.error('IndexedDB: Error getting expenses by date range:', request.error);
         reject(request.error);
       };
     });
@@ -312,12 +479,12 @@ class DatabaseServiceWeb implements IDatabase {
       const request = store.put(expense);
 
       request.onsuccess = () => {
-        console.log('✅ IndexedDB: Expense updated');
+        console.log('IndexedDB: Expense updated');
         resolve();
       };
 
       request.onerror = () => {
-        console.error('❌ IndexedDB: Error updating expense:', request.error);
+        console.error('IndexedDB: Error updating expense:', request.error);
         reject(request.error);
       };
     });
@@ -332,12 +499,12 @@ class DatabaseServiceWeb implements IDatabase {
       const request = store.delete(id);
 
       request.onsuccess = () => {
-        console.log('✅ IndexedDB: Expense deleted');
+        console.log('IndexedDB: Expense deleted');
         resolve();
       };
 
       request.onerror = () => {
-        console.error('❌ IndexedDB: Error deleting expense:', request.error);
+        console.error('IndexedDB: Error deleting expense:', request.error);
         reject(request.error);
       };
     });
@@ -352,12 +519,12 @@ class DatabaseServiceWeb implements IDatabase {
       const request = store.clear();
 
       request.onsuccess = () => {
-        console.log('✅ IndexedDB: All expenses deleted');
+        console.log('IndexedDB: All expenses deleted');
         resolve();
       };
 
       request.onerror = () => {
-        console.error('❌ IndexedDB: Error deleting all expenses:', request.error);
+        console.error('IndexedDB: Error deleting all expenses:', request.error);
         reject(request.error);
       };
     });
@@ -365,9 +532,6 @@ class DatabaseServiceWeb implements IDatabase {
 
   // ==================== CATEGORY KEYWORD METHODS ====================
 
-  /**
-   * Get all learned category keywords
-   */
   async getAllCategoryKeywords(): Promise<CategoryKeyword[]> {
     this.ensureDbReady();
 
@@ -378,27 +542,22 @@ class DatabaseServiceWeb implements IDatabase {
 
       request.onsuccess = () => {
         const keywords = request.result as CategoryKeyword[];
-        // Sort by confidence descending, then keyword ascending
         keywords.sort((a, b) => {
           if (b.confidence !== a.confidence) {
             return b.confidence - a.confidence;
           }
           return a.keyword.localeCompare(b.keyword);
         });
-        console.log(`✅ IndexedDB: Fetched ${keywords.length} category keywords`);
         resolve(keywords);
       };
 
       request.onerror = () => {
-        console.error('❌ IndexedDB: Error getting category keywords:', request.error);
+        console.error('IndexedDB: Error getting category keywords:', request.error);
         reject(request.error);
       };
     });
   }
 
-  /**
-   * Find a category keyword by keyword string
-   */
   async findCategoryKeyword(keyword: string): Promise<CategoryKeyword | null> {
     this.ensureDbReady();
 
@@ -414,16 +573,13 @@ class DatabaseServiceWeb implements IDatabase {
       };
 
       request.onerror = () => {
-        console.error('❌ IndexedDB: Error finding category keyword:', request.error);
+        console.error('IndexedDB: Error finding category keyword:', request.error);
         reject(request.error);
       };
     });
   }
 
-  /**
-   * Save or update a category keyword association
-   */
-  async saveCategoryKeyword(keyword: string, category: string): Promise<void> {
+  async saveCategoryKeyword(keyword: string, categoryId: number): Promise<void> {
     this.ensureDbReady();
 
     try {
@@ -439,35 +595,35 @@ class DatabaseServiceWeb implements IDatabase {
           // Update existing keyword
           const updated: CategoryKeyword = {
             ...existing,
-            category,
-            confidence: existing.category === category ? existing.confidence + 1 : 1,
+            categoryId,
+            confidence: existing.categoryId === categoryId ? existing.confidence + 1 : 1,
             updatedAt: now,
           };
 
           const request = store.put(updated);
 
           request.onsuccess = () => {
-            if (existing.category === category) {
+            if (existing.categoryId === categoryId) {
               console.log(
-                `✅ IndexedDB: Incremented confidence for "${normalizedKeyword}" -> ${category}`,
+                `IndexedDB: Incremented confidence for "${normalizedKeyword}" -> category ${categoryId}`,
               );
             } else {
               console.log(
-                `✅ IndexedDB: Updated "${normalizedKeyword}" from ${existing.category} to ${category}`,
+                `IndexedDB: Updated "${normalizedKeyword}" from category ${existing.categoryId} to ${categoryId}`,
               );
             }
             resolve();
           };
 
           request.onerror = () => {
-            console.error('❌ IndexedDB: Error updating category keyword:', request.error);
+            console.error('IndexedDB: Error updating category keyword:', request.error);
             reject(request.error);
           };
         } else {
           // Create new keyword
           const newKeyword: Omit<CategoryKeyword, 'id'> = {
             keyword: normalizedKeyword,
-            category,
+            categoryId,
             confidence: 1,
             createdAt: now,
             updatedAt: now,
@@ -476,25 +632,24 @@ class DatabaseServiceWeb implements IDatabase {
           const request = store.add(newKeyword);
 
           request.onsuccess = () => {
-            console.log(`✅ IndexedDB: Created new keyword "${normalizedKeyword}" -> ${category}`);
+            console.log(
+              `IndexedDB: Created new keyword "${normalizedKeyword}" -> category ${categoryId}`,
+            );
             resolve();
           };
 
           request.onerror = () => {
-            console.error('❌ IndexedDB: Error creating category keyword:', request.error);
+            console.error('IndexedDB: Error creating category keyword:', request.error);
             reject(request.error);
           };
         }
       });
     } catch (error) {
-      console.error('❌ IndexedDB: Error in saveCategoryKeyword:', error);
+      console.error('IndexedDB: Error in saveCategoryKeyword:', error);
       throw error;
     }
   }
 
-  /**
-   * Delete a category keyword by ID
-   */
   async deleteCategoryKeyword(id: number): Promise<void> {
     this.ensureDbReady();
 
@@ -504,77 +659,64 @@ class DatabaseServiceWeb implements IDatabase {
       const request = store.delete(id);
 
       request.onsuccess = () => {
-        console.log('✅ IndexedDB: Category keyword deleted');
+        console.log('IndexedDB: Category keyword deleted');
         resolve();
       };
 
       request.onerror = () => {
-        console.error('❌ IndexedDB: Error deleting category keyword:', request.error);
+        console.error('IndexedDB: Error deleting category keyword:', request.error);
         reject(request.error);
       };
     });
   }
 
-  /**
-   * Get all keywords for a specific category
-   */
-  async getKeywordsForCategory(category: string): Promise<CategoryKeyword[]> {
+  async getKeywordsForCategory(categoryId: number): Promise<CategoryKeyword[]> {
     this.ensureDbReady();
 
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([this.KEYWORDS_STORE], 'readonly');
       const store = transaction.objectStore(this.KEYWORDS_STORE);
-      const index = store.index('category');
-      const request = index.getAll(category);
+      const index = store.index('categoryId');
+      const request = index.getAll(categoryId);
 
       request.onsuccess = () => {
         const keywords = request.result as CategoryKeyword[];
-        // Sort by confidence descending
         keywords.sort((a, b) => b.confidence - a.confidence);
         resolve(keywords);
       };
 
       request.onerror = () => {
-        console.error('❌ IndexedDB: Error getting keywords for category:', request.error);
+        console.error('IndexedDB: Error getting keywords for category:', request.error);
         reject(request.error);
       };
     });
   }
 
-  /**
-   * Search for a category based on learned keywords in the given text
-   * Returns the category with highest confidence if found
-   */
-  async searchLearnedCategory(text: string): Promise<string | null> {
+  async searchLearnedCategory(text: string): Promise<number | null> {
     this.ensureDbReady();
 
     try {
       const lowerText = text.toLowerCase();
       const keywords = await this.getAllCategoryKeywords();
 
-      // Find matching keywords
       const matches = keywords.filter((kw) => lowerText.includes(kw.keyword.toLowerCase()));
 
       if (matches.length === 0) {
         return null;
       }
 
-      // Return category with highest confidence
       matches.sort((a, b) => b.confidence - a.confidence);
 
       console.log(
-        `✅ IndexedDB: Found learned category "${matches[0].category}" for text (confidence: ${matches[0].confidence})`,
+        `IndexedDB: Found learned category ${matches[0].categoryId} for text (confidence: ${matches[0].confidence})`,
       );
-      return matches[0].category;
+      return matches[0].categoryId; // Return categoryId, not the whole object
     } catch (error) {
-      console.error('❌ IndexedDB: Error searching learned category:', error);
+      console.error('IndexedDB: Error searching learned category:', error);
       throw error;
     }
   }
 
-  /**
-   * Delete all learned category keywords
-   */
   async deleteAllCategoryKeywords(): Promise<void> {
     this.ensureDbReady();
 
@@ -584,20 +726,17 @@ class DatabaseServiceWeb implements IDatabase {
       const request = store.clear();
 
       request.onsuccess = () => {
-        console.log('✅ IndexedDB: All category keywords deleted');
+        console.log('IndexedDB: All category keywords deleted');
         resolve();
       };
 
       request.onerror = () => {
-        console.error('❌ IndexedDB: Error deleting all category keywords:', request.error);
+        console.error('IndexedDB: Error deleting all category keywords:', request.error);
         reject(request.error);
       };
     });
   }
 
-  /**
-   * Get statistics about learned keywords
-   */
   async getCategoryKeywordStats(): Promise<{
     totalKeywords: number;
     totalCategories: number;
@@ -607,7 +746,7 @@ class DatabaseServiceWeb implements IDatabase {
 
     try {
       const keywords = await this.getAllCategoryKeywords();
-      const uniqueCategories = new Set(keywords.map((k) => k.category));
+      const uniqueCategories = new Set(keywords.map((k) => k.categoryId));
       const totalConfidence = keywords.reduce((sum, k) => sum + k.confidence, 0);
 
       return {
@@ -616,7 +755,7 @@ class DatabaseServiceWeb implements IDatabase {
         averageConfidence: keywords.length > 0 ? totalConfidence / keywords.length : 0,
       };
     } catch (error) {
-      console.error('❌ IndexedDB: Error getting keyword stats:', error);
+      console.error('IndexedDB: Error getting keyword stats:', error);
       throw error;
     }
   }
@@ -626,7 +765,7 @@ class DatabaseServiceWeb implements IDatabase {
   async closeDatabase(): Promise<void> {
     if (this.db) {
       this.db.close();
-      console.log('✅ IndexedDB: Database closed');
+      console.log('IndexedDB: Database closed');
       this.db = null;
       this.isInitialized = false;
     }

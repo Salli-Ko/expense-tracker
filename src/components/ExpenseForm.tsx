@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -9,20 +9,28 @@ import {
   TouchableOpacity,
   Modal,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import StorageService from '@/database/StorageService';
-import { Expense, ExpenseCategory } from '@/database/models/Expense';
+import { Expense } from '@/database/models/Expense';
+import { Category } from '@/database/models/Category';
 import { transactionParser } from '@/transaction-parser/TransactionParser';
 
 interface ExpenseFormProps {
-  categories: string[];
+  categories: Category[]; // Changed from string[] to Category[]
   isDbReady: boolean;
   onExpenseAdded: () => Promise<void>;
+  refetchCategories: () => Promise<void>;
 }
 
-const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, isDbReady, onExpenseAdded }) => {
+const ExpenseForm: React.FC<ExpenseFormProps> = ({
+  categories,
+  isDbReady,
+  onExpenseAdded,
+  refetchCategories,
+}) => {
   const [category, setCategory] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
   const [date, setDate] = useState<Date | null>(null);
@@ -30,12 +38,18 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, isDbReady, onExpe
   const [smsMessage, setSmsMessage] = useState<string>('');
   const [isSmsExpanded, setIsSmsExpanded] = useState<boolean>(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState<boolean>(false);
-
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // New Category Modal
+  const [showNewCategoryModal, setShowNewCategoryModal] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryKeywords, setNewCategoryKeywords] = useState('');
 
   // Learning data
   const [parsedMerchant, setParsedMerchant] = useState<string>('');
   const [originalCategory, setOriginalCategory] = useState<string>('');
+
+  // In ExpenseForm.tsx, update handleParseSMS:
 
   const handleParseSMS = async () => {
     if (!smsMessage.trim()) {
@@ -51,29 +65,128 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, isDbReady, onExpe
         return;
       }
 
-      setCategory(parsed.category);
+      // Set category name (for display in picker)
+      setCategory(parsed.categoryName);
       setAmount(parsed.amount.toString());
       setDescription(parsed.merchant || '');
       setDate(parsed.date);
 
+      // Store parsed data for learning
       setParsedMerchant(parsed.merchant || '');
-      setOriginalCategory(parsed.category);
+      setOriginalCategory(parsed.categoryName);
 
-      const dateText = parsed.date ? `\nDate: ${parsed.date}` : '';
+      const dateText = parsed.date ? `\nDate: ${parsed.date.toDateString()}` : '';
 
       Alert.alert(
         'SMS Parsed Successfully',
-        `Category: ${parsed.category}
-          Amount: ${parsed.amount}
-          Merchant: ${parsed.merchant || 'N/A'}${dateText}
+        `Category: ${parsed.categoryName}
+Amount: ${parsed.amount}
+Merchant: ${parsed.merchant || 'N/A'}${dateText}
 
-          You can change the category if needed. The app will learn from your corrections.`,
+You can change the category if needed. The app will learn from your corrections.`,
         [{ text: 'OK' }],
       );
     } catch (error) {
       console.error('Error parsing SMS:', error);
       Alert.alert('Error', 'Failed to parse SMS message');
     }
+  };
+
+  const handleAddNewCategory = async () => {
+    const categoryName = newCategoryName.trim().toUpperCase();
+    const keywords = newCategoryKeywords
+      .split(',')
+      .map((k) => k.trim().toLowerCase())
+      .filter((k) => k.length > 0);
+
+    if (!categoryName) {
+      Alert.alert('Error', 'Please enter a category name');
+      return;
+    }
+
+    // Check if category already exists
+    const existingCategory = categories.find((c) => c.name === categoryName);
+    if (existingCategory) {
+      Alert.alert('Error', 'This category already exists');
+      return;
+    }
+
+    if (keywords.length === 0) {
+      Alert.alert('Error', 'Please enter at least one keyword');
+      return;
+    }
+
+    try {
+      const now = new Date().toISOString();
+
+      // Step 1: Insert the category into the database
+      const category = await StorageService.insertCategory({
+        name: categoryName,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      // Step 2: Save keywords with the categoryId
+      for (const keyword of keywords) {
+        await StorageService.saveCategoryKeyword(keyword, category.id);
+      }
+
+      // Set the new category as selected
+      setCategory(category.name);
+
+      // Reset modal
+      setNewCategoryName('');
+      setNewCategoryKeywords('');
+      setShowNewCategoryModal(false);
+
+      // Refresh categories list
+      await refetchCategories();
+
+      Alert.alert(
+        'Success',
+        `Category "${categoryName}" created with ${keywords.length} keyword(s)`,
+      );
+    } catch (error) {
+      console.error('Error adding new category:', error);
+      Alert.alert('Error', 'Failed to create new category');
+    }
+  };
+
+  const handleSuggestCategory = () => {
+    if (!description.trim()) {
+      Alert.alert('Hint', 'Add a description first, then we can suggest keywords from it');
+      return;
+    }
+
+    // Extract potential keywords from description
+    const words = description
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((word) => word.length > 2); // Only words with 3+ characters
+
+    setNewCategoryKeywords(words.join(', '));
+    setShowNewCategoryModal(true);
+  };
+
+  const handleClearForm = () => {
+    Alert.alert('Clear Form', 'Are you sure you want to clear all fields?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Clear',
+        style: 'destructive',
+        onPress: () => {
+          setAmount('');
+          setDescription('');
+          setSmsMessage('');
+          setCategory('');
+          setDate(null);
+          setParsedMerchant('');
+          setOriginalCategory('');
+          setIsSmsExpanded(false);
+          console.log('Form cleared');
+        },
+      },
+    ]);
   };
 
   const handleAddExpense = async () => {
@@ -104,21 +217,37 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, isDbReady, onExpe
 
       await StorageService.insertExpense(newExpense);
 
-      // Category learning
-      if (parsedMerchant && originalCategory) {
-        if (category !== originalCategory) {
-          await transactionParser.learnCategory(parsedMerchant, category);
-          console.log(`✅ Learned: ${parsedMerchant} -> ${category}`);
-        } else {
-          await transactionParser.learnCategory(parsedMerchant, category);
-          console.log(`✅ Reinforced: ${parsedMerchant} -> ${category}`);
+      // Category learning - need to get categoryId
+      const selectedCategory = categories.find((c) => c.name === category);
+
+      if (selectedCategory?.id) {
+        // Learn from parsed merchant
+        if (parsedMerchant) {
+          await StorageService.saveCategoryKeyword(parsedMerchant, selectedCategory.id);
+
+          if (category !== originalCategory) {
+            console.log(`Learned: ${parsedMerchant} -> ${category}`);
+          } else {
+            console.log(`Reinforced: ${parsedMerchant} -> ${category}`);
+          }
+        }
+
+        // Learn from description if present
+        if (description.trim()) {
+          await StorageService.saveCategoryKeyword(
+            description.trim().toLowerCase(),
+            selectedCategory.id,
+          );
+          console.log(`Learned from description: ${description} -> ${category}`);
         }
       }
 
+      // Reset form
       setAmount('');
       setDescription('');
       setSmsMessage('');
-      setCategory(categories[0] || ExpenseCategory.FOOD);
+      setCategory('');
+      setDate(null);
       setParsedMerchant('');
       setOriginalCategory('');
       setIsSmsExpanded(false);
@@ -133,7 +262,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, isDbReady, onExpe
     }
   };
 
-  const renderCategoryPicker = () => {
+  const renderCategoryPicker = useCallback(() => {
     if (Platform.OS === 'ios') {
       return (
         <>
@@ -141,7 +270,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, isDbReady, onExpe
             style={styles.categoryButton}
             onPress={() => setShowCategoryPicker(true)}
           >
-            <Text style={styles.categoryButtonText}>{category}</Text>
+            <Text style={styles.categoryButtonText}>{category || 'Select Category'}</Text>
             <Text style={styles.categoryButtonIcon}>▼</Text>
           </TouchableOpacity>
 
@@ -165,8 +294,9 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, isDbReady, onExpe
                   onValueChange={(value) => setCategory(value)}
                   style={styles.iosPicker}
                 >
+                  <Picker.Item label="Select Category" value="" />
                   {categories.map((c) => (
-                    <Picker.Item key={c} label={c} value={c} />
+                    <Picker.Item key={c.id || c.name} label={c.name} value={c.name} />
                   ))}
                 </Picker>
               </View>
@@ -183,13 +313,14 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, isDbReady, onExpe
           onValueChange={(value) => setCategory(value)}
           style={styles.picker}
         >
+          <Picker.Item label="Select Category" value="" />
           {categories.map((c) => (
-            <Picker.Item key={c} label={c} value={c} />
+            <Picker.Item key={c.id || c.name} label={c.name} value={c.name} />
           ))}
         </Picker>
       </View>
     );
-  };
+  }, [categories, category, showCategoryPicker]);
 
   return (
     <View style={styles.form}>
@@ -224,7 +355,16 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, isDbReady, onExpe
 
           <View style={styles.divider} />
 
-          <Text style={styles.label}>Category</Text>
+          <View style={styles.categoryHeader}>
+            <Text style={styles.label}>Category</Text>
+            <TouchableOpacity
+              style={styles.addCategoryButton}
+              onPress={() => setShowNewCategoryModal(true)}
+            >
+              <Text style={styles.addCategoryButtonText}>+ New Category</Text>
+            </TouchableOpacity>
+          </View>
+
           {parsedMerchant && originalCategory && (
             <Text style={styles.learningHint}>💡 Change category to teach the app</Text>
           )}
@@ -241,7 +381,13 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, isDbReady, onExpe
             onChangeText={setAmount}
           />
 
-          <Text style={styles.label}>Description (Optional)</Text>
+          <View style={styles.descriptionHeader}>
+            <Text style={styles.label}>Description (Optional)</Text>
+            <TouchableOpacity style={styles.suggestButton} onPress={handleSuggestCategory}>
+              <Text style={styles.suggestButtonText}>💡 Suggest Category</Text>
+            </TouchableOpacity>
+          </View>
+
           <TextInput
             style={[styles.input, styles.textArea]}
             placeholder="Add a note..."
@@ -252,7 +398,6 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, isDbReady, onExpe
             onChangeText={setDescription}
           />
 
-          {/*  Date Input (Web / Android / iOS) */}
           <Text style={styles.label}>Date</Text>
 
           {Platform.OS === 'web' ? (
@@ -286,11 +431,78 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, isDbReady, onExpe
             />
           )}
 
-          <View style={styles.buttonContainer}>
-            <Button title="Add Expense" onPress={handleAddExpense} color="#3498db" />
+          <View style={styles.actionButtons}>
+            <TouchableOpacity style={styles.clearButton} onPress={handleClearForm}>
+              <Text style={styles.clearButtonText}>🗑️ Clear</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.addButton} onPress={handleAddExpense}>
+              <Text style={styles.addButtonText}>➕ Add Expense</Text>
+            </TouchableOpacity>
           </View>
         </View>
       )}
+
+      {/* New Category Modal */}
+      <Modal
+        visible={showNewCategoryModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowNewCategoryModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.newCategoryModal}>
+            <ScrollView>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Add New Category</Text>
+                <TouchableOpacity onPress={() => setShowNewCategoryModal(false)}>
+                  <Text style={styles.modalClose}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.label}>Category Name</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., GROCERIES, ENTERTAINMENT"
+                placeholderTextColor="#999"
+                value={newCategoryName}
+                onChangeText={setNewCategoryName}
+                autoCapitalize="characters"
+              />
+
+              <Text style={styles.label}>Keywords (comma-separated)</Text>
+              <Text style={styles.hint}>
+                Add keywords that identify this category (e.g., store names, merchant types)
+              </Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="e.g., keells, cargills, arpico"
+                placeholderTextColor="#999"
+                multiline
+                numberOfLines={4}
+                value={newCategoryKeywords}
+                onChangeText={setNewCategoryKeywords}
+              />
+
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={() => {
+                    setShowNewCategoryModal(false);
+                    setNewCategoryName('');
+                    setNewCategoryKeywords('');
+                  }}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.createButton} onPress={handleAddNewCategory}>
+                  <Text style={styles.createButtonText}>Create Category</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -342,14 +554,51 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     color: '#333',
   },
+  hint: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 8,
+    fontStyle: 'italic',
+  },
   learningHint: {
     fontSize: 13,
     color: '#27ae60',
     marginBottom: 8,
     fontStyle: 'italic',
   },
-
-  // iOS Category Button
+  categoryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  addCategoryButton: {
+    backgroundColor: '#3498db',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  addCategoryButtonText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  descriptionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  suggestButton: {
+    backgroundColor: '#27ae60',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  suggestButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
   categoryButton: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -369,8 +618,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
   },
-
-  // Modal
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -400,11 +647,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#3498db',
   },
+  modalClose: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#666',
+  },
   iosPicker: {
     width: '100%',
     height: 200,
   },
-
   pickerContainer: {
     borderWidth: 1,
     borderColor: '#ddd',
@@ -415,7 +666,6 @@ const styles = StyleSheet.create({
   picker: {
     height: 50,
   },
-
   input: {
     borderWidth: 1,
     borderColor: '#ddd',
@@ -425,24 +675,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: '#fff',
   },
-
   textArea: {
     height: 80,
     textAlignVertical: 'top',
   },
-
   buttonContainer: {
     marginTop: 8,
     marginBottom: 16,
   },
-
   divider: {
     height: 1,
     backgroundColor: '#e0e0e0',
     marginVertical: 16,
   },
-
-  // Web Date Input
   webDateInput: {
     borderWidth: 1,
     borderColor: '#ddd',
@@ -452,8 +697,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     width: '100%',
   },
-
-  // Mobile Date Button
   dateButton: {
     borderWidth: 1,
     borderColor: '#ddd',
@@ -472,6 +715,75 @@ const styles = StyleSheet.create({
   dateButtonIcon: {
     fontSize: 18,
     color: '#333',
+  },
+  newCategoryModal: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '80%',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 8,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: '#e0e0e0',
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    color: '#333',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  createButton: {
+    flex: 1,
+    backgroundColor: '#3498db',
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  createButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 8,
+  },
+  clearButton: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#bab8b8',
+  },
+  clearButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  addButton: {
+    flex: 2,
+    backgroundColor: '#3498db',
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 
