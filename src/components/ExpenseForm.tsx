@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import StorageService from '@/database/StorageService';
 import { Expense, ExpenseCategory } from '@/database/models/Expense';
 import { transactionParser } from '@/transaction-parser/TransactionParser';
@@ -22,7 +23,6 @@ interface ExpenseFormProps {
 }
 
 const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, isDbReady, onExpenseAdded }) => {
-  // Form states
   const [category, setCategory] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
   const [date, setDate] = useState<Date | null>(null);
@@ -31,7 +31,9 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, isDbReady, onExpe
   const [isSmsExpanded, setIsSmsExpanded] = useState<boolean>(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState<boolean>(false);
 
-  // Track parsed data for learning
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Learning data
   const [parsedMerchant, setParsedMerchant] = useState<string>('');
   const [originalCategory, setOriginalCategory] = useState<string>('');
 
@@ -49,20 +51,14 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, isDbReady, onExpe
         return;
       }
 
-      // Use the category directly from parser (it uses database keywords)
-      const suggestedCategory = parsed.category;
-
-      // Set the suggested category (user can change it)
-      setCategory(suggestedCategory);
+      setCategory(parsed.category);
       setAmount(parsed.amount.toString());
       setDescription(parsed.merchant || '');
       setDate(parsed.date);
 
-      // Store parsed data
       setParsedMerchant(parsed.merchant || '');
       setOriginalCategory(parsed.category);
 
-      // Build optional date text
       const dateText = parsed.date ? `\nDate: ${parsed.date}` : '';
 
       Alert.alert(
@@ -108,43 +104,32 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, isDbReady, onExpe
 
       await StorageService.insertExpense(newExpense);
 
-      // Learn from category correction if user changed it
+      // Category learning
       if (parsedMerchant && originalCategory) {
-        // If user changed the category, learn the new association
         if (category !== originalCategory) {
-          try {
-            await transactionParser.learnCategory(parsedMerchant, category);
-            console.log(`✅ Learned: ${parsedMerchant} -> ${category}`);
-          } catch (error) {
-            console.error('Error learning category:', error);
-          }
+          await transactionParser.learnCategory(parsedMerchant, category);
+          console.log(`✅ Learned: ${parsedMerchant} -> ${category}`);
         } else {
-          // Even if category wasn't changed, reinforce the association
-          try {
-            await transactionParser.learnCategory(parsedMerchant, category);
-            console.log(`✅ Reinforced: ${parsedMerchant} -> ${category}`);
-          } catch (error) {
-            console.error('Error reinforcing category:', error);
-          }
+          await transactionParser.learnCategory(parsedMerchant, category);
+          console.log(`✅ Reinforced: ${parsedMerchant} -> ${category}`);
         }
       }
 
-      // Reset form and learning data
       setAmount('');
       setDescription('');
       setSmsMessage('');
       setCategory(categories[0] || ExpenseCategory.FOOD);
       setParsedMerchant('');
       setOriginalCategory('');
+      setIsSmsExpanded(false);
 
-      // Notify parent to refresh data
       await onExpenseAdded();
 
       Alert.alert('Success', 'Expense added successfully');
     } catch (error) {
       console.error('Error adding expense:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to add expense';
-      Alert.alert('Error', errorMessage);
+      const message = error instanceof Error ? error.message : 'Failed to add expense';
+      Alert.alert('Error', message);
     }
   };
 
@@ -174,13 +159,14 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, isDbReady, onExpe
                     <Text style={styles.modalDone}>Done</Text>
                   </TouchableOpacity>
                 </View>
+
                 <Picker
                   selectedValue={category}
                   onValueChange={(value) => setCategory(value)}
                   style={styles.iosPicker}
                 >
-                  {categories.map((cat) => (
-                    <Picker.Item key={cat} label={cat} value={cat} />
+                  {categories.map((c) => (
+                    <Picker.Item key={c} label={c} value={c} />
                   ))}
                 </Picker>
               </View>
@@ -190,7 +176,6 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, isDbReady, onExpe
       );
     }
 
-    // Android - use default picker
     return (
       <View style={styles.pickerContainer}>
         <Picker
@@ -198,8 +183,8 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, isDbReady, onExpe
           onValueChange={(value) => setCategory(value)}
           style={styles.picker}
         >
-          {categories.map((cat) => (
-            <Picker.Item key={cat} label={cat} value={cat} />
+          {categories.map((c) => (
+            <Picker.Item key={c} label={c} value={c} />
           ))}
         </Picker>
       </View>
@@ -210,7 +195,6 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, isDbReady, onExpe
     <View style={styles.form}>
       <Text style={styles.formTitle}>Add New Expense</Text>
 
-      {/* Collapsible SMS Input Section */}
       <TouchableOpacity
         style={styles.smsToggle}
         onPress={() => setIsSmsExpanded(!isSmsExpanded)}
@@ -228,11 +212,12 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, isDbReady, onExpe
             style={[styles.input, styles.textArea]}
             placeholder="Paste your bank SMS here..."
             placeholderTextColor="#999"
-            value={smsMessage}
-            onChangeText={setSmsMessage}
             multiline
             numberOfLines={4}
+            value={smsMessage}
+            onChangeText={setSmsMessage}
           />
+
           <View style={styles.buttonContainer}>
             <Button title="Parse SMS" onPress={handleParseSMS} color="#27ae60" />
           </View>
@@ -249,9 +234,9 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, isDbReady, onExpe
           <Text style={styles.label}>Amount (LKR)</Text>
           <TextInput
             style={styles.input}
+            keyboardType="decimal-pad"
             placeholder="0.00"
             placeholderTextColor="#999"
-            keyboardType="decimal-pad"
             value={amount}
             onChangeText={setAmount}
           />
@@ -261,11 +246,45 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, isDbReady, onExpe
             style={[styles.input, styles.textArea]}
             placeholder="Add a note..."
             placeholderTextColor="#999"
-            value={description}
-            onChangeText={setDescription}
             multiline
             numberOfLines={3}
+            value={description}
+            onChangeText={setDescription}
           />
+
+          {/* ✅ Date Input (Web / Android / iOS) */}
+          <Text style={styles.label}>Date</Text>
+
+          {Platform.OS === 'web' ? (
+            <input
+              type="date"
+              value={date ? date.toISOString().split('T')[0] : ''}
+              onChange={(e) => setDate(new Date(e.target.value))}
+              style={styles.webDateInput as any}
+            />
+          ) : (
+            <TouchableOpacity
+              onPress={() => setShowDatePicker(!showDatePicker)}
+              style={styles.dateButton}
+            >
+              <Text style={styles.dateButtonText}>
+                {date ? date.toDateString() : 'Select Date'}
+              </Text>
+              <Text style={styles.dateButtonIcon}>📅</Text>
+            </TouchableOpacity>
+          )}
+
+          {showDatePicker && (
+            <DateTimePicker
+              value={date || new Date()}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(event, selectedDate) => {
+                setShowDatePicker(false);
+                if (selectedDate) setDate(selectedDate);
+              }}
+            />
+          )}
 
           <View style={styles.buttonContainer}>
             <Button title="Add Expense" onPress={handleAddExpense} color="#3498db" />
@@ -329,6 +348,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     fontStyle: 'italic',
   },
+
   // iOS Category Button
   categoryButton: {
     flexDirection: 'row',
@@ -349,7 +369,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
   },
-  // iOS Modal
+
+  // Modal
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -383,7 +404,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 200,
   },
-  // Android Picker
+
   pickerContainer: {
     borderWidth: 1,
     borderColor: '#ddd',
@@ -394,6 +415,7 @@ const styles = StyleSheet.create({
   picker: {
     height: 50,
   },
+
   input: {
     borderWidth: 1,
     borderColor: '#ddd',
@@ -403,18 +425,53 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: '#fff',
   },
+
   textArea: {
     height: 80,
     textAlignVertical: 'top',
   },
+
   buttonContainer: {
     marginTop: 8,
     marginBottom: 16,
   },
+
   divider: {
     height: 1,
     backgroundColor: '#e0e0e0',
     marginVertical: 16,
+  },
+
+  // Web Date Input
+  webDateInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    fontSize: 16,
+    width: '100%',
+  },
+
+  // Mobile Date Button
+  dateButton: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dateButtonText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  dateButtonIcon: {
+    fontSize: 18,
+    color: '#333',
   },
 });
 
