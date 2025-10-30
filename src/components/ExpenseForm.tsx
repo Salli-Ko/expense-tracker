@@ -252,7 +252,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, isDbReady, onExpe
             onChangeText={setDescription}
           />
 
-          {/* ✅ Date Input (Web / Android / iOS) */}
+          {/*  Date Input (Web / Android / iOS) */}
           <Text style={styles.label}>Date</Text>
 
           {Platform.OS === 'web' ? (
