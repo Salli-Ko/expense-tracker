@@ -7,6 +7,8 @@ import {
   StyleSheet,
   Alert,
   TouchableOpacity,
+  Modal,
+  Platform,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import StorageService from '@/database/StorageService';
@@ -19,17 +21,14 @@ interface ExpenseFormProps {
   onExpenseAdded: () => Promise<void>;
 }
 
-const ExpenseForm: React.FC<ExpenseFormProps> = ({
-                                                   categories,
-                                                   isDbReady,
-                                                   onExpenseAdded,
-                                                 }) => {
+const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, isDbReady, onExpenseAdded }) => {
   // Form states
   const [category, setCategory] = useState<string>(ExpenseCategory.FOOD);
   const [amount, setAmount] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [smsMessage, setSmsMessage] = useState<string>('');
   const [isSmsExpanded, setIsSmsExpanded] = useState<boolean>(false);
+  const [showCategoryPicker, setShowCategoryPicker] = useState<boolean>(false);
 
   // Track parsed data for learning
   const [parsedMerchant, setParsedMerchant] = useState<string>('');
@@ -63,7 +62,9 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
 
       Alert.alert(
         'SMS Parsed Successfully',
-        `Category: ${parsed.category}\nAmount: ${parsed.amount}\nMerchant: ${parsed.merchant || 'N/A'}\n\nYou can change the category if needed. The app will learn from your corrections.`,
+        `Category: ${parsed.category}\nAmount: ${parsed.amount}\nMerchant: ${
+          parsed.merchant || 'N/A'
+        }\n\nYou can change the category if needed. The app will learn from your corrections.`,
         [{ text: 'OK' }]
       );
 
@@ -143,6 +144,64 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
     }
   };
 
+  const renderCategoryPicker = () => {
+    if (Platform.OS === 'ios') {
+      return (
+        <>
+          <TouchableOpacity
+            style={styles.categoryButton}
+            onPress={() => setShowCategoryPicker(true)}
+          >
+            <Text style={styles.categoryButtonText}>{category}</Text>
+            <Text style={styles.categoryButtonIcon}>▼</Text>
+          </TouchableOpacity>
+
+          <Modal
+            visible={showCategoryPicker}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setShowCategoryPicker(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Select Category</Text>
+                  <TouchableOpacity onPress={() => setShowCategoryPicker(false)}>
+                    <Text style={styles.modalDone}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+                <Picker
+                  selectedValue={category}
+                  onValueChange={(value) => setCategory(value)}
+                  style={styles.iosPicker}
+                >
+                  {categories.map((cat) => (
+                    <Picker.Item key={cat} label={cat} value={cat} />
+                  ))}
+                </Picker>
+              </View>
+            </View>
+          </Modal>
+        </>
+      );
+    }
+
+    // Android - use default picker
+    return (
+      <View style={styles.pickerContainer}>
+        <Picker
+          selectedValue={category}
+          onValueChange={(value) => setCategory(value)}
+          style={styles.picker}
+        >
+          {categories.map((cat) => (
+            <Picker.Item key={cat} label={cat} value={cat} />
+          ))}
+        </Picker>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.form}>
       <Text style={styles.formTitle}>Add New Expense</Text>
@@ -156,9 +215,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
         <Text style={styles.smsToggleText}>
           {isSmsExpanded ? '📱 Hide SMS Parser' : '📱 Parse Bank SMS'}
         </Text>
-        <Text style={styles.smsToggleIcon}>
-          {isSmsExpanded ? '▼' : '▶'}
-        </Text>
+        <Text style={styles.smsToggleIcon}>{isSmsExpanded ? '▼' : '▶'}</Text>
       </TouchableOpacity>
 
       {isSmsExpanded && (
@@ -173,32 +230,17 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
             numberOfLines={4}
           />
           <View style={styles.buttonContainer}>
-            <Button
-              title="Parse SMS"
-              onPress={handleParseSMS}
-              color="#27ae60"
-            />
+            <Button title="Parse SMS" onPress={handleParseSMS} color="#27ae60" />
           </View>
 
           <View style={styles.divider} />
 
           <Text style={styles.label}>Category</Text>
           {parsedMerchant && originalCategory && (
-            <Text style={styles.learningHint}>
-              💡 Change category to teach the app
-            </Text>
+            <Text style={styles.learningHint}>💡 Change category to teach the app</Text>
           )}
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={category}
-              onValueChange={(value) => setCategory(value)}
-              style={styles.picker}
-            >
-              {categories.map((cat) => (
-                <Picker.Item key={cat} label={cat} value={cat} />
-              ))}
-            </Picker>
-          </View>
+
+          {renderCategoryPicker()}
 
           <Text style={styles.label}>Amount (LKR)</Text>
           <TextInput
@@ -222,11 +264,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
           />
 
           <View style={styles.buttonContainer}>
-            <Button
-              title="Add Expense"
-              onPress={handleAddExpense}
-              color="#3498db"
-            />
+            <Button title="Add Expense" onPress={handleAddExpense} color="#3498db" />
           </View>
         </View>
       )}
@@ -287,6 +325,61 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     fontStyle: 'italic',
   },
+  // iOS Category Button
+  categoryButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    backgroundColor: '#fff',
+  },
+  categoryButtonText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  categoryButtonIcon: {
+    fontSize: 16,
+    color: '#666',
+  },
+  // iOS Modal
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  modalDone: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#3498db',
+  },
+  iosPicker: {
+    width: '100%',
+    height: 200,
+  },
+  // Android Picker
   pickerContainer: {
     borderWidth: 1,
     borderColor: '#ddd',
