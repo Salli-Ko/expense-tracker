@@ -676,6 +676,125 @@ class DatabaseServiceNative implements IDatabase {
     }
   }
 
+  /**
+   * Get expenses grouped by week for the current month
+   */
+  async getExpensesByWeekCurrentMonth(): Promise<Array<{
+    week: number;
+    weekStart: string;
+    weekEnd: string;
+    total: number;
+  }>> {
+    this.ensureDbReady();
+
+    try {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+
+      // Get first and last day of current month
+      const firstDay = new Date(year, month - 1, 1);
+      const lastDay = new Date(year, month, 0);
+
+      const expenses = await this.db!.getAllAsync<Expense>(
+        `SELECT * FROM expenses 
+       WHERE strftime('%Y-%m', date) = strftime('%Y-%m', 'now')
+       ORDER BY date ASC`
+      );
+
+      // Group expenses by week
+      const weeklyData: { [key: number]: { total: number; dates: Date[] } } = {};
+
+      expenses.forEach((expense) => {
+        const expenseDate = new Date(expense.date);
+        const dayOfMonth = expenseDate.getDate();
+        const weekNumber = Math.ceil(dayOfMonth / 7);
+
+        if (!weeklyData[weekNumber]) {
+          weeklyData[weekNumber] = { total: 0, dates: [] };
+        }
+
+        weeklyData[weekNumber].total += expense.amount;
+        weeklyData[weekNumber].dates.push(expenseDate);
+      });
+
+      // Convert to array format
+      const result = Object.entries(weeklyData).map(([week, data]) => {
+        const dates = data.dates.sort((a, b) => a.getTime() - b.getTime());
+        const weekStart = dates[0] || firstDay;
+        const weekEnd = dates[dates.length - 1] || weekStart;
+
+        return {
+          week: parseInt(week),
+          weekStart: weekStart.toISOString(),
+          weekEnd: weekEnd.toISOString(),
+          total: data.total,
+        };
+      });
+
+      // Ensure all weeks are present (1-5)
+      const allWeeks = [];
+      for (let i = 1; i <= 5; i++) {
+        const existing = result.find((r) => r.week === i);
+        if (existing) {
+          allWeeks.push(existing);
+        } else {
+          // Calculate week start/end for empty weeks
+          const weekStart = new Date(year, month - 1, (i - 1) * 7 + 1);
+          const weekEnd = new Date(year, month - 1, i * 7);
+          allWeeks.push({
+            week: i,
+            weekStart: weekStart.toISOString(),
+            weekEnd: weekEnd.toISOString(),
+            total: 0,
+          });
+        }
+      }
+
+      return allWeeks;
+    } catch (error) {
+      console.error('SQLite: Error getting expenses by week:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get expenses by category for a specific month
+   */
+  async getExpensesByCategoryForMonth(year: number, month: number): Promise<Array<{
+    category: string;
+    total: number;
+    count: number;
+  }>> {
+    this.ensureDbReady();
+
+    try {
+      const monthStr = month.toString().padStart(2, '0');
+      const yearMonth = `${year}-${monthStr}`;
+
+      const results = await this.db!.getAllAsync<{
+        category: string;
+        total: number;
+        count: number;
+      }>(
+        `SELECT 
+        category,
+        SUM(amount) as total,
+        COUNT(*) as count
+       FROM expenses
+       WHERE strftime('%Y-%m', date) = ?
+       GROUP BY category
+       ORDER BY total DESC`,
+        [yearMonth]
+      );
+
+      return results;
+    } catch (error) {
+      console.error('SQLite: Error getting expenses by category for month:', error);
+      throw error;
+    }
+  }
+
   // ==================== DATABASE MANAGEMENT ====================
 
   async closeDatabase(): Promise<void> {

@@ -88,7 +88,7 @@ const HomeScreen: React.FC = () => {
         </View>
 
         <View style={styles.totalContainer}>
-          <Text style={styles.totalLabel}>Total Expenses:</Text>
+          <Text style={styles.totalLabel}>Month&#39;s Expenses:</Text>
           <Text style={styles.totalAmount}>LKR {totalExpenses.toFixed(2)}</Text>
         </View>
       </View>

@@ -55,4 +55,27 @@ export interface IDatabase {
     totalCategories: number;
     averageConfidence: number;
   }>;
+
+  /**
+   * Get expenses grouped by week for the current month
+   * @returns Array of weekly totals with week number and amount
+   */
+  getExpensesByWeekCurrentMonth(): Promise<Array<{
+    week: number;
+    weekStart: string;
+    weekEnd: string;
+    total: number;
+  }>>;
+
+  /**
+   * Get expenses by category for a specific month
+   * @param year - Year (e.g., 2025)
+   * @param month - Month (1-12)
+   * @returns Array of category totals
+   */
+  getExpensesByCategoryForMonth(year: number, month: number): Promise<Array<{
+    category: string;
+    total: number;
+    count: number;
+  }>>;
 }

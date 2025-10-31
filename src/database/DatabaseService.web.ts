@@ -760,6 +760,135 @@ class DatabaseServiceWeb implements IDatabase {
     }
   }
 
+  /**
+   * Get expenses grouped by week for the current month
+   */
+  async getExpensesByWeekCurrentMonth(): Promise<Array<{
+    week: number;
+    weekStart: string;
+    weekEnd: string;
+    total: number;
+  }>> {
+    this.ensureDbReady();
+
+    try {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth();
+
+      // Get first and last day of current month
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+
+      const allExpenses = await this.getAllExpenses();
+
+      // Filter expenses for current month
+      const expenses = allExpenses.filter((expense) => {
+        const expenseDate = new Date(expense.date);
+        return expenseDate.getMonth() === month && expenseDate.getFullYear() === year;
+      });
+
+      // Group expenses by week
+      const weeklyData: { [key: number]: { total: number; dates: Date[] } } = {};
+
+      expenses.forEach((expense) => {
+        const expenseDate = new Date(expense.date);
+        const dayOfMonth = expenseDate.getDate();
+        const weekNumber = Math.ceil(dayOfMonth / 7);
+
+        if (!weeklyData[weekNumber]) {
+          weeklyData[weekNumber] = { total: 0, dates: [] };
+        }
+
+        weeklyData[weekNumber].total += expense.amount;
+        weeklyData[weekNumber].dates.push(expenseDate);
+      });
+
+      // Convert to array format
+      const result = Object.entries(weeklyData).map(([week, data]) => {
+        const dates = data.dates.sort((a, b) => a.getTime() - b.getTime());
+        const weekStart = dates[0] || firstDay;
+        const weekEnd = dates[dates.length - 1] || weekStart;
+
+        return {
+          week: parseInt(week),
+          weekStart: weekStart.toISOString(),
+          weekEnd: weekEnd.toISOString(),
+          total: data.total,
+        };
+      });
+
+      // Ensure all weeks are present (1-5)
+      const allWeeks = [];
+      for (let i = 1; i <= 5; i++) {
+        const existing = result.find((r) => r.week === i);
+        if (existing) {
+          allWeeks.push(existing);
+        } else {
+          const weekStart = new Date(year, month, (i - 1) * 7 + 1);
+          const weekEnd = new Date(year, month, i * 7);
+          allWeeks.push({
+            week: i,
+            weekStart: weekStart.toISOString(),
+            weekEnd: weekEnd.toISOString(),
+            total: 0,
+          });
+        }
+      }
+
+      return allWeeks;
+    } catch (error) {
+      console.error('IndexedDB: Error getting expenses by week:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get expenses by category for a specific month
+   */
+  async getExpensesByCategoryForMonth(year: number, month: number): Promise<Array<{
+    category: string;
+    total: number;
+    count: number;
+  }>> {
+    this.ensureDbReady();
+
+    try {
+      const allExpenses = await this.getAllExpenses();
+
+      // Filter expenses for the specified month
+      const monthExpenses = allExpenses.filter((expense) => {
+        const expenseDate = new Date(expense.date);
+        return expenseDate.getMonth() === month - 1 && expenseDate.getFullYear() === year;
+      });
+
+      // Group by category
+      const categoryMap: { [category: string]: { total: number; count: number } } = {};
+
+      monthExpenses.forEach((expense) => {
+        if (!categoryMap[expense.category]) {
+          categoryMap[expense.category] = { total: 0, count: 0 };
+        }
+        categoryMap[expense.category].total += expense.amount;
+        categoryMap[expense.category].count += 1;
+      });
+
+      // Convert to array and sort by total
+      const results = Object.entries(categoryMap).map(([category, data]) => ({
+        category,
+        total: data.total,
+        count: data.count,
+      }));
+
+      results.sort((a, b) => b.total - a.total);
+
+      return results;
+    } catch (error) {
+      console.error('IndexedDB: Error getting expenses by category for month:', error);
+      throw error;
+    }
+  }
+
   // ==================== DATABASE MANAGEMENT ====================
 
   async closeDatabase(): Promise<void> {
