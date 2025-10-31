@@ -7,19 +7,23 @@ A smart expense tracking app built with React Native and Expo that learns from y
 ### 🎯 Core Features
 - **Expense Management**: Add, view, edit, and delete expenses
 - **Category System**: Pre-defined categories (Food, Transportation, Health, etc.)
+- **Custom Categories**: Create your own categories with keywords
 - **SMS Parsing**: Automatically extract transaction details from bank SMS
-- **Smart Learning**: AI-powered category suggestions that improve over time
+- **Smart Learning**: category suggestions that improve over time
 - **Total Tracking**: Real-time expense totals and summaries
+- **📊 Analytics Dashboard**: Visual insights into your spending patterns
 - **Cross-Platform**: Works on iOS, Android, and Web
 
-### 🧠 Machine Learning
-- **Adaptive Learning**: App learns merchant-category associations from your corrections
-- **Keyword Database**: Stores learned patterns in SQLite/IndexedDB
-- **Confidence Scoring**: Prioritizes suggestions based on usage patterns
-- **User Feedback Loop**: Gets smarter with every expense you add
+### 📊 Charts & Analytics
+- **Weekly Spending Bar Chart**: Track spending across weeks of the month
+- **Category Breakdown Pie Chart**: Visualize spending distribution by category
+- **Summary Statistics**: Total, highest week, and average spending
+- **Progress Bars**: Visual representation of category spending percentages
+- **Transaction Counts**: See how many transactions per category
+- **Auto-Refresh**: Charts update automatically when you switch tabs
 
 ### 📱 SMS Parser
-- Extracts merchant name, amount, and transaction type
+- Extracts merchant name, amount, date, and transaction type
 - Supports multiple bank SMS formats
 - Suggests categories based on learned patterns
 - Manual correction teaches the system
@@ -31,6 +35,7 @@ A smart expense tracking app built with React Native and Expo that learns from y
 - **Expo** - Development and build tooling
 - **TypeScript** - Type-safe development
 - **React Navigation** - Screen navigation
+- **React Native Gifted Charts** - Beautiful charts and data visualization
 
 ### Database
 - **SQLite** (Mobile) - Local storage for iOS/Android
@@ -44,24 +49,24 @@ A smart expense tracking app built with React Native and Expo that learns from y
 - **Error Boundaries** - Graceful error handling
 
 ## 📂 Project Structure
-
 ```
 expense-tracker/
 ├── app/                          # Expo Router screens
 │   ├── (tabs)/                   # Tab navigation
-│   │   └── index.tsx            # Home screen
+│   │   ├── index.tsx            # Home screen with expenses
+│   │   └── charts.tsx           # Analytics dashboard
 │   ├── category-management.tsx  # Learned keywords screen
 │   └── _layout.tsx              # Root layout with error boundary
 ├── components/
 │   ├── ExpenseForm.tsx          # Add expense form
-│   ├── ExpenseList.tsx          # List of expenses
-│   └── ErrorBoundary.tsx        # Error boundary component
+│   └── ExpenseList.tsx          # List of expenses
 ├── database/
-│   ├── DatabaseService.ts       # SQLite service (mobile)
+│   ├── DatabaseServiceNative.ts # SQLite service (mobile)
 │   ├── DatabaseServiceWeb.ts    # IndexedDB service (web)
 │   ├── StorageService.ts        # Platform router
 │   ├── models/
 │   │   ├── Expense.ts           # Expense model
+│   │   ├── Category.ts          # Category entity model
 │   │   └── CategoryKeyword.ts   # Keyword model
 │   └── types.ts                 # Database interfaces
 ├── hooks/
@@ -92,6 +97,8 @@ cd expense-tracker
 2. Install dependencies
 ```bash
 npm install
+# or
+yarn install
 ```
 
 3. Start the development server
@@ -110,19 +117,37 @@ npx expo start
 ### Adding an Expense
 
 **Manual Entry:**
-1. Tap "Parse Bank SMS" button
-2. Select category
-3. Enter amount
-4. Add optional description
-5. Tap "Add Expense"
+1. Open the "Expenses" tab
+2. Tap "Parse Bank SMS" to expand the form
+3. Select category
+4. Enter amount
+5. Add optional description and date
+6. Tap "Add Expense"
 
 **SMS Parsing:**
 1. Copy a bank transaction SMS
-2. Tap "Parse Bank SMS"
+2. Tap "Parse Bank SMS" button
 3. Paste the SMS message
 4. Tap "Parse SMS"
-5. Review and adjust if needed
+5. Review and adjust category if needed
 6. Tap "Add Expense"
+
+### Creating Custom Categories
+
+1. Tap "+ New Category" in the expense form
+2. Enter category name (e.g., "ENTERTAINMENT")
+3. Add keywords (e.g., "netflix, spotify, cinema")
+4. Tap "Create Category"
+5. The category is now available for all expenses
+
+### Viewing Analytics
+
+1. Navigate to the "Charts" tab
+2. View weekly spending breakdown (bar chart)
+3. See category distribution (pie chart)
+4. Check summary statistics
+5. Scroll through detailed breakdown
+6. Charts auto-refresh when you add expenses
 
 ### Teaching the App
 
@@ -141,6 +166,18 @@ npx expo start
 
 ## 🗄️ Database Schema
 
+### Categories Table
+```sql
+CREATE TABLE categories (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  icon TEXT,
+  color TEXT,
+  createdAt TEXT NOT NULL,
+  updatedAt TEXT NOT NULL
+);
+```
+
 ### Expenses Table
 ```sql
 CREATE TABLE expenses (
@@ -157,19 +194,37 @@ CREATE TABLE expenses (
 CREATE TABLE category_keywords (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   keyword TEXT UNIQUE NOT NULL,
-  category TEXT NOT NULL,
+  categoryId INTEGER NOT NULL,
   confidence INTEGER DEFAULT 1,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
+  createdAt TEXT NOT NULL,
+  updatedAt TEXT NOT NULL,
+  FOREIGN KEY (categoryId) REFERENCES categories(id) ON DELETE CASCADE
 );
 ```
 
 ## 🧩 Key Components
 
+### Charts Screen
+Interactive analytics dashboard with:
+- **Weekly Bar Chart**: Shows spending for each week of the current month
+- **Category Pie Chart**: Donut chart with percentage breakdown
+- **Summary Cards**: Total, highest week, and average spending
+- **Detailed Breakdown**: Progress bars and transaction counts
+- **Auto-refresh**: Updates when screen comes into focus
+
+**Database Methods:**
+```typescript
+// Get weekly spending data
+const weeklyData = await StorageService.getExpensesByWeekCurrentMonth();
+
+// Get category breakdown for a month
+const categoryData = await StorageService.getExpensesByCategoryForMonth(2025, 1);
+```
+
 ### useInitDatabase Hook
 Handles all database initialization and data loading:
 - Opens database connection
-- Creates tables
+- Creates tables (categories, expenses, category_keywords)
 - Loads initial data (expenses, categories, totals)
 - Provides refresh function
 - Handles errors with retry mechanism
@@ -181,7 +236,8 @@ const {
   expenses, 
   totalExpenses, 
   categories,
-  refreshExpenses 
+  refreshExpenses,
+  refetchCategories
 } = useInitDatabase();
 ```
 
@@ -189,15 +245,18 @@ const {
 Standalone form for adding expenses:
 - SMS parsing
 - Category selection (iOS/Android optimized)
+- Custom category creation
 - Learning system integration
 - Form validation
+- Clear button
 
 **Props:**
 ```typescript
 interface ExpenseFormProps {
-  categories: string[];
+  categories: Category[];
   isDbReady: boolean;
   onExpenseAdded: () => Promise<void>;
+  refetchCategories: () => Promise<void>;
 }
 ```
 
@@ -205,9 +264,9 @@ interface ExpenseFormProps {
 Smart SMS parsing with learning:
 ```typescript
 const parsed = await transactionParser.parse(smsText);
-// Returns: { amount, merchant, category }
+// Returns: { categoryId, categoryName, amount, merchant, date }
 
-await transactionParser.learnCategory(merchant, category);
+await StorageService.saveCategoryKeyword(merchant, categoryId);
 // Saves/updates merchant-category association
 ```
 
@@ -217,8 +276,9 @@ await transactionParser.learnCategory(merchant, category);
 Edit `constants/defaultCategories.ts` to customize default keywords:
 ```typescript
 export const DEFAULT_CATEGORIES = {
-  FOOD: ['keells', 'cargills', 'arpico', 'restaurant'],
-  TRANSPORTATION: ['uber', 'pickme', 'railway'],
+  FOOD: ['keells', 'cargills', 'arpico', 'restaurant', 'cafe'],
+  TRANSPORT: ['uber', 'pickme', 'railway', 'bus'],
+  HEALTH: ['pharmacy', 'hospital', 'doctor', 'clinic'],
   // Add more...
 };
 ```
@@ -247,58 +307,67 @@ Configuration in `.prettierrc`:
 
 ## 🧪 Testing
 
-### Manual Testing
-1. Add expenses manually
-2. Test SMS parsing with real bank messages
-3. Verify category learning
-4. Test on multiple platforms (iOS, Android, Web)
+### Manual Testing Checklist
+- [ ] Add expenses manually
+- [ ] Test SMS parsing with real bank messages
+- [ ] Verify category learning
+- [ ] Create custom categories
+- [ ] Test on multiple platforms (iOS, Android, Web)
+- [ ] Check charts update after adding expenses
+- [ ] Verify weekly breakdown accuracy
+- [ ] Test category pie chart percentages
 
 ### Test Scenarios
-- Parse SMS → Accept suggestion → Check confidence increases
-- Parse SMS → Change category → Next time uses new category
-- Delete expenses → Verify total updates
-- Restart app → Verify data persists
+- **Learning**: Parse SMS → Accept suggestion → Check confidence increases
+- **Correction**: Parse SMS → Change category → Next time uses new category
+- **Charts**: Add expense → Switch to Charts tab → Verify data updates
+- **Persistence**: Delete expenses → Verify total updates → Restart app → Verify data persists
+- **Categories**: Create category → Add keywords → Verify appears in picker
 
-## 🐛 Troubleshooting
+### Completed ✅
+- [x] Core expense tracking
+- [x] SMS parsing
+- [x] Machine learning system
+- [x] Category management
+- [x] Weekly bar chart
+- [x] Category pie chart
+- [x] Custom categories
 
-### Database Not Initializing
-- Check console for errors
-- Tap "Retry" button
-- Clear app data and restart
+## 🎨 Design Features
 
-### SMS Parser Not Working
-- Verify SMS format matches parser patterns
-- Check console for parsing errors
-- Add custom patterns in TransactionParser.ts
+### UI/UX Highlights
+- **Tab Navigation**: Easy switching between Expenses and Charts
+- **Card-based Design**: Clean, modern interface
+- **Color Coding**: Categories have distinct colors in charts
+- **Responsive**: Adapts to different screen sizes
+- **Dark Mode Ready**: Prepared for dark theme implementation
+- **Smooth Animations**: Chart animations for better UX
+- **Loading States**: Clear feedback during data operations
 
-### iOS Picker Issues
-- Fixed with modal-based picker
-- If issues persist, check React Native Picker version
-
-### TypeScript Errors
-- Run `npx tsc --noEmit` to check types
-- Restart TypeScript server in IDE
-- Check tsconfig.json settings
-
-## 📈 Roadmap
-
-- [ ] Export expenses to CSV/PDF
-- [ ] Monthly/weekly reports with charts
-- [ ] Budget limits and alerts
-- [ ] Recurring expense tracking
-- [ ] Multiple currency support
-- [ ] Cloud sync (optional)
-- [ ] Receipt photo attachments
-- [ ] Custom categories
+### Accessibility
+- Clear labels and descriptions
+- Sufficient color contrast
+- Touch-friendly button sizes
+- Readable font sizes
+- Screen reader support (planned)
 
 ## 🤝 Contributing
 
 Contributions are welcome! Please:
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
 4. Write/update tests
-5. Submit a pull request
+5. Commit your changes (`git commit -m 'Add amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Submit a pull request
+
+### Development Guidelines
+- Follow existing code style
+- Add comments for complex logic
+- Update README for new features
+- Test on iOS, Android, and Web
+- Keep dependencies minimal
 
 ## 📄 License
 
@@ -312,9 +381,37 @@ Built with ❤️ using React Native and Expo
 
 - React Native community
 - Expo team
+- React Navigation
+- React Native Gifted Charts
 - SQLite and IndexedDB maintainers
 - All open source contributors
+
+## 📞 Support
+
+If you encounter issues:
+1. Check the Troubleshooting section
+2. Search existing GitHub issues
+3. Create a new issue with details
+4. Include device/platform information
+5. Attach console logs if possible
 
 ---
 
 **Happy Tracking! 💰📊**
+
+### Screenshots
+```
+┌─────────────────────┐  ┌─────────────────────┐
+│   💰 Expenses       │  │   📊 Charts         │
+├─────────────────────┤  ├─────────────────────┤
+│ Add New Expense     │  │ Weekly Spending     │
+│ • SMS Parser        │  │ ┌─┐ ┌─┐ ┌─┐ ┌─┐ ┌─┐│
+│ • Category Picker   │  │ │ │ │ │ │ │ │ │ │ ││
+│ • Amount & Date     │  │ └─┘ └─┘ └─┘ └─┘ └─┘│
+│                     │  │  W1  W2  W3  W4  W5 │
+│ Recent Expenses     │  │                     │
+│ • Food - LKR 450    │  │ Category Breakdown  │
+│ • Transport - 200   │  │ ┌──────────────┐   │
+│ • Health - 1500     │  │ │ 🥧 Pie Chart │   │
+└─────────────────────┘  └─────────────────────┘
+```
