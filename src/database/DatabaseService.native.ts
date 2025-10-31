@@ -169,7 +169,7 @@ class DatabaseServiceNative implements IDatabase {
   private async initializeDefaultCategories(): Promise<void> {
     try {
       const existingCount = await this.db!.getFirstAsync<{ count: number }>(
-        'SELECT COUNT(*) as count FROM categories',
+        'SELECT COUNT(*) as count FROM categories'
       );
 
       if (existingCount && existingCount.count > 0) {
@@ -177,28 +177,27 @@ class DatabaseServiceNative implements IDatabase {
         return;
       }
 
-      console.log('SQLite: Initializing default category keywords...');
       const now = new Date().toISOString();
       let categoryCount = 0;
       let keywordCount = 0;
 
-      for (const [categoryName, keywords] of Object.entries(DEFAULT_CATEGORIES)) {
+      for (const [categoryName, categoryData] of Object.entries(DEFAULT_CATEGORIES)) {
         try {
-          // Insert category
+          // Insert category with icon
           const result = await this.db!.runAsync(
-            'INSERT INTO categories (name, createdAt, updatedAt) VALUES (?, ?, ?)',
-            [categoryName, now, now],
+            'INSERT INTO categories (name, icon, createdAt, updatedAt) VALUES (?, ?, ?, ?)',
+            [categoryName, categoryData.icon, now, now]
           );
 
           const categoryId = result.lastInsertRowId;
           categoryCount++;
 
           // Insert keywords for this category
-          for (const keyword of keywords) {
+          for (const keyword of categoryData.keywords) {
             try {
               await this.db!.runAsync(
                 'INSERT INTO category_keywords (keyword, categoryId, confidence, createdAt, updatedAt) VALUES (?, ?, 1, ?, ?)',
-                [keyword.toLowerCase().trim(), categoryId, now, now],
+                [keyword.toLowerCase().trim(), categoryId, now, now]
               );
               keywordCount++;
             } catch (error) {

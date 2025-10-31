@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Expense } from '@/database/models/Expense';
+import { Category } from '@/database/models/Category';
 
 interface ExpenseListProps {
   expenses: Expense[];
+  categories: Category[]; // Add categories prop
   onDeleteExpense: (id: number) => void;
   onEditExpense: (expense: Expense) => void;
 }
@@ -13,8 +16,19 @@ interface GroupedExpenses {
   expenses: Expense[];
 }
 
-const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDeleteExpense, onEditExpense }) => {
+const ExpenseList: React.FC<ExpenseListProps> = ({
+  expenses,
+  categories,
+  onDeleteExpense,
+  onEditExpense,
+}) => {
   const [selectedExpenseId, setSelectedExpenseId] = useState<number | null>(null);
+
+  // Helper function to get category icon
+  const getCategoryIcon = (categoryName: string): string => {
+    const category = categories.find((c) => c.name === categoryName);
+    return category?.icon || 'pricetag'; // Default icon if not found
+  };
 
   // Group expenses by date
   const groupExpensesByDate = (): GroupedExpenses[] => {
@@ -85,6 +99,7 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDeleteExpense, on
 
           {group.expenses.map((expense) => {
             const isSelected = selectedExpenseId === expense.id;
+            const categoryIcon = getCategoryIcon(expense.category);
 
             return (
               <View key={expense.id}>
@@ -95,13 +110,26 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDeleteExpense, on
                 >
                   <View style={styles.expenseInfo}>
                     <View style={styles.expenseLeft}>
-                      <Text style={styles.categoryText}>{expense.category}</Text>
+                      {/* Category with Icon */}
+                      <View style={styles.categoryContainer}>
+                        <Ionicons
+                          name={categoryIcon as any}
+                          size={20}
+                          color="#3498db"
+                          style={styles.categoryIcon}
+                        />
+                        <Text style={styles.categoryText}>{expense.category}</Text>
+                      </View>
+
+                      {/* Description */}
                       {expense.description && (
                         <Text style={styles.descriptionText} numberOfLines={1}>
                           {expense.description}
                         </Text>
                       )}
                     </View>
+
+                    {/* Amount */}
                     <Text style={styles.amountText}>LKR {formatAmount(expense.amount)}</Text>
                   </View>
                 </TouchableOpacity>
@@ -192,15 +220,23 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 12,
   },
+  categoryContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  categoryIcon: {
+    marginRight: 8,
+  },
   categoryText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#2c3e50',
-    marginBottom: 2,
   },
   descriptionText: {
     fontSize: 13,
     color: '#7f8c8d',
+    marginLeft: 28, // Align with category text (icon width + margin)
   },
   amountText: {
     fontSize: 16,

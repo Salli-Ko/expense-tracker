@@ -1,8 +1,8 @@
-import {Expense} from '@/database/models/Expense';
-import {Category} from '@/database/models/Category';
-import {CategoryKeyword} from '@/database/models/CategoryKeyword';
-import {IDatabase} from '@/database/types';
-import {DEFAULT_CATEGORIES} from '@/constants/defaultCategories';
+import { Expense } from '@/database/models/Expense';
+import { Category } from '@/database/models/Category';
+import { CategoryKeyword } from '@/database/models/CategoryKeyword';
+import { IDatabase } from '@/database/types';
+import { DEFAULT_CATEGORIES } from '@/constants/defaultCategories';
 
 class DatabaseServiceWeb implements IDatabase {
   private db: IDBDatabase | null = null;
@@ -51,7 +51,7 @@ class DatabaseServiceWeb implements IDatabase {
             keyPath: 'id',
             autoIncrement: true,
           });
-          categoriesStore.createIndex('name', 'name', {unique: true});
+          categoriesStore.createIndex('name', 'name', { unique: true });
           console.log('IndexedDB: Categories store created');
         }
 
@@ -61,8 +61,8 @@ class DatabaseServiceWeb implements IDatabase {
             keyPath: 'id',
             autoIncrement: true,
           });
-          expensesStore.createIndex('category', 'category', {unique: false});
-          expensesStore.createIndex('date', 'date', {unique: false});
+          expensesStore.createIndex('category', 'category', { unique: false });
+          expensesStore.createIndex('date', 'date', { unique: false });
           console.log('IndexedDB: Expenses store created');
         }
 
@@ -72,9 +72,9 @@ class DatabaseServiceWeb implements IDatabase {
             keyPath: 'id',
             autoIncrement: true,
           });
-          keywordsStore.createIndex('keyword', 'keyword', {unique: true});
-          keywordsStore.createIndex('categoryId', 'categoryId', {unique: false});
-          keywordsStore.createIndex('confidence', 'confidence', {unique: false});
+          keywordsStore.createIndex('keyword', 'keyword', { unique: true });
+          keywordsStore.createIndex('categoryId', 'categoryId', { unique: false });
+          keywordsStore.createIndex('confidence', 'confidence', { unique: false });
           console.log('IndexedDB: Category keywords store created');
         }
       };
@@ -106,16 +106,16 @@ class DatabaseServiceWeb implements IDatabase {
         return;
       }
 
-      console.log('IndexedDB: Initializing default categories and keywords...');
       const now = new Date().toISOString();
       let categoryCount = 0;
       let keywordCount = 0;
 
-      for (const [categoryName, keywords] of Object.entries(DEFAULT_CATEGORIES)) {
+      for (const [categoryName, categoryData] of Object.entries(DEFAULT_CATEGORIES)) {
         try {
-          // Insert category
-          const savedCategory = await this.insertCategory({
+          // Insert category with icon
+          const categoryId = await this.insertCategory({
             name: categoryName,
+            icon: categoryData.icon,
             createdAt: now,
             updatedAt: now,
           });
@@ -125,11 +125,11 @@ class DatabaseServiceWeb implements IDatabase {
           const transaction = this.db!.transaction([this.KEYWORDS_STORE], 'readwrite');
           const store = transaction.objectStore(this.KEYWORDS_STORE);
 
-          for (const keyword of keywords) {
+          for (const keyword of categoryData.keywords) {
             try {
               const newKeyword: Omit<CategoryKeyword, 'id'> = {
                 keyword: keyword.toLowerCase().trim(),
-                savedCategory.id,
+                categoryId,
                 confidence: 1,
                 createdAt: now,
                 updatedAt: now,
@@ -222,10 +222,7 @@ class DatabaseServiceWeb implements IDatabase {
     });
   }
 
-  async insertCategory(
-    category: Omit<Category, 'id'>,
-    keywords?: string[]
-  ): Promise<Category> {
+  async insertCategory(category: Omit<Category, 'id'>, keywords?: string[]): Promise<Category> {
     this.ensureDbReady();
 
     try {
@@ -233,7 +230,9 @@ class DatabaseServiceWeb implements IDatabase {
       const existing = await this.getCategoryByName(category.name);
 
       if (existing && existing.id) {
-        console.log(`IndexedDB: Category "${category.name}" already exists with ID: ${existing.id}`);
+        console.log(
+          `IndexedDB: Category "${category.name}" already exists with ID: ${existing.id}`,
+        );
 
         // If keywords provided, add them to existing category
         if (keywords && keywords.length > 0) {
@@ -248,7 +247,9 @@ class DatabaseServiceWeb implements IDatabase {
             }
           }
 
-          console.log(`IndexedDB: Added ${addedCount} keyword(s) to existing category "${category.name}"`);
+          console.log(
+            `IndexedDB: Added ${addedCount} keyword(s) to existing category "${category.name}"`,
+          );
         }
 
         return existing;
@@ -763,12 +764,14 @@ class DatabaseServiceWeb implements IDatabase {
   /**
    * Get expenses grouped by week for the current month
    */
-  async getExpensesByWeekCurrentMonth(): Promise<Array<{
-    week: number;
-    weekStart: string;
-    weekEnd: string;
-    total: number;
-  }>> {
+  async getExpensesByWeekCurrentMonth(): Promise<
+    Array<{
+      week: number;
+      weekStart: string;
+      weekEnd: string;
+      total: number;
+    }>
+  > {
     this.ensureDbReady();
 
     try {
@@ -846,11 +849,16 @@ class DatabaseServiceWeb implements IDatabase {
   /**
    * Get expenses by category for a specific month
    */
-  async getExpensesByCategoryForMonth(year: number, month: number): Promise<Array<{
-    category: string;
-    total: number;
-    count: number;
-  }>> {
+  async getExpensesByCategoryForMonth(
+    year: number,
+    month: number,
+  ): Promise<
+    Array<{
+      category: string;
+      total: number;
+      count: number;
+    }>
+  > {
     this.ensureDbReady();
 
     try {

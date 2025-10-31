@@ -104,6 +104,7 @@ const HomeScreen: React.FC = () => {
         <Text style={styles.subtitle}>Recent Expenses</Text>
         <ExpenseList
           expenses={expenses}
+          categories={categories}
           onDeleteExpense={handleDeleteExpense}
           onEditExpense={handleEditExpense}
         />

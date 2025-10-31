@@ -17,9 +17,11 @@ import StorageService from '@/database/StorageService';
 import { Expense } from '@/database/models/Expense';
 import { Category } from '@/database/models/Category';
 import { transactionParser } from '@/transaction-parser/TransactionParser';
+import IconPicker from '@/components/IconPicker';
+import { Ionicons } from '@expo/vector-icons';
 
 interface ExpenseFormProps {
-  categories: Category[]; // Changed from string[] to Category[]
+  categories: Category[];
   isDbReady: boolean;
   onExpenseAdded: () => Promise<void>;
   refetchCategories: () => Promise<void>;
@@ -49,7 +51,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
   const [parsedMerchant, setParsedMerchant] = useState<string>('');
   const [originalCategory, setOriginalCategory] = useState<string>('');
 
-  // In ExpenseForm.tsx, update handleParseSMS:
+  const [newCategoryIcon, setNewCategoryIcon] = useState('');
 
   const handleParseSMS = async () => {
     if (!smsMessage.trim()) {
@@ -123,6 +125,7 @@ You can change the category if needed. The app will learn from your corrections.
       const category = await StorageService.insertCategory({
         name: categoryName,
         createdAt: now,
+        icon: newCategoryIcon || 'pricetag',
         updatedAt: now,
       });
 
@@ -270,7 +273,17 @@ You can change the category if needed. The app will learn from your corrections.
             style={styles.categoryButton}
             onPress={() => setShowCategoryPicker(true)}
           >
-            <Text style={styles.categoryButtonText}>{category || 'Select Category'}</Text>
+            <View style={styles.categoryButtonContent}>
+              {category && categories.find((c) => c.name === category)?.icon && (
+                <Ionicons
+                  name={categories.find((c) => c.name === category)?.icon as any}
+                  size={20}
+                  color="#3498db"
+                  style={styles.categoryIcon}
+                />
+              )}
+              <Text style={styles.categoryButtonText}>{category || 'Select Category'}</Text>
+            </View>
             <Text style={styles.categoryButtonIcon}>▼</Text>
           </TouchableOpacity>
 
@@ -296,7 +309,11 @@ You can change the category if needed. The app will learn from your corrections.
                 >
                   <Picker.Item label="Select Category" value="" />
                   {categories.map((c) => (
-                    <Picker.Item key={c.id || c.name} label={c.name} value={c.name} />
+                    <Picker.Item
+                      key={c.id || c.name}
+                      label={`${c.icon ? '  ' : ''}${c.name}`}
+                      value={c.name}
+                    />
                   ))}
                 </Picker>
               </View>
@@ -458,6 +475,9 @@ You can change the category if needed. The app will learn from your corrections.
                   <Text style={styles.modalClose}>✕</Text>
                 </TouchableOpacity>
               </View>
+
+              <Text style={styles.label}>Category Icon (Optional)</Text>
+              <IconPicker selectedIcon={newCategoryIcon} onSelectIcon={setNewCategoryIcon} />
 
               <Text style={styles.label}>Category Name</Text>
               <TextInput
@@ -784,6 +804,13 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  categoryButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  categoryIcon: {
+    marginRight: 8,
   },
 });
 

@@ -107,12 +107,15 @@ class TransactionParserService {
     return new Date();
   }
 
+  // In TransactionParser.ts
   /**
    * Categorize text using both learned keywords and default categories
    * Priority: Learned keywords > Default keywords
    * @returns categoryId and categoryName
    */
-  private async categorize(text: string): Promise<{ categoryId: number | null; categoryName: string }> {
+  private async categorize(
+    text: string,
+  ): Promise<{ categoryId: number | null; categoryName: string }> {
     const lowerText = text.toLowerCase();
 
     // First, try to find a learned category
@@ -132,8 +135,8 @@ class TransactionParserService {
     }
 
     // Fall back to default categories - find by name
-    for (const [categoryName, keywords] of Object.entries(DEFAULT_CATEGORIES)) {
-      if (keywords.some((keyword) => lowerText.includes(keyword))) {
+    for (const [categoryName, categoryData] of Object.entries(DEFAULT_CATEGORIES)) {
+      if (categoryData.keywords.some((keyword) => lowerText.includes(keyword))) {
         // Find the category ID from the database
         try {
           const category = await StorageService.getCategoryByName(categoryName);
