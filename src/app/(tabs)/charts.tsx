@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   ActivityIndicator,
@@ -11,6 +10,7 @@ import {
 import { BarChart, PieChart } from 'react-native-gifted-charts';
 import StorageService from '@/database/StorageService';
 import { useFocusEffect } from '@react-navigation/native';
+import { AppText } from '@/components/AppText';
 
 interface WeeklyData {
   week: number;
@@ -73,7 +73,7 @@ const ChartsScreen: React.FC = () => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#3498db" />
-        <Text style={styles.loadingText}>Loading charts...</Text>
+        <AppText style={styles.loadingText}>Loading charts...</AppText>
       </View>
     );
   }
@@ -84,7 +84,7 @@ const ChartsScreen: React.FC = () => {
     label: `W${week.week}`,
     frontColor: '#3498db',
     topLabelComponent: () => (
-      <Text style={styles.barTopLabel}>{week.total > 0 ? week.total.toFixed(0) : ''}</Text>
+      <AppText style={styles.barTopLabel}>{week.total > 0 ? week.total.toFixed(0) : ''}</AppText>
     ),
   }));
 
@@ -119,35 +119,35 @@ const ChartsScreen: React.FC = () => {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Spending Analytics</Text>
-        <Text style={styles.headerSubtitle}>{currentMonth}</Text>
+        <AppText style={styles.headerTitle}>Spending Analytics</AppText>
+        <AppText style={styles.headerSubtitle}>{currentMonth}</AppText>
       </View>
 
       {/* Weekly Spending Chart */}
       <View style={styles.chartCard}>
         <View style={styles.chartHeader}>
-          <Text style={styles.chartTitle}>📊 Weekly Spending</Text>
+          <AppText style={styles.chartTitle}>📊 Weekly Spending</AppText>
           <TouchableOpacity
             style={styles.refreshButton}
             onPress={loadChartsData}
           >
-            <Text style={styles.refreshButtonText}>🔄 Refresh</Text>
+            <AppText style={styles.refreshButtonText}>🔄 Refresh</AppText>
           </TouchableOpacity>
         </View>
 
         {/* Summary Cards */}
         <View style={styles.summaryContainer}>
           <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Total</Text>
-            <Text style={styles.summaryValue}>LKR {totalWeeklySpending.toFixed(2)}</Text>
+            <AppText style={styles.summaryLabel}>Total</AppText>
+            <AppText style={styles.summaryValue}>LKR {totalWeeklySpending.toFixed(2)}</AppText>
           </View>
           <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Highest Week</Text>
-            <Text style={styles.summaryValue}>LKR {maxWeekSpending.toFixed(2)}</Text>
+            <AppText style={styles.summaryLabel}>Highest Week</AppText>
+            <AppText style={styles.summaryValue}>LKR {maxWeekSpending.toFixed(2)}</AppText>
           </View>
           <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Average</Text>
-            <Text style={styles.summaryValue}>LKR {avgWeekSpending.toFixed(2)}</Text>
+            <AppText style={styles.summaryLabel}>Average</AppText>
+            <AppText style={styles.summaryValue}>LKR {avgWeekSpending.toFixed(2)}</AppText>
           </View>
         </View>
 
@@ -178,7 +178,7 @@ const ChartsScreen: React.FC = () => {
           </View>
         ) : (
           <View style={styles.noDataContainer}>
-            <Text style={styles.noDataText}>No expenses recorded this month</Text>
+            <AppText style={styles.noDataText}>No expenses recorded this month</AppText>
           </View>
         )}
 
@@ -186,14 +186,14 @@ const ChartsScreen: React.FC = () => {
         <View style={styles.weekDetailsContainer}>
           {weeklyData.map((week) => (
             <View key={week.week} style={styles.weekDetailCard}>
-              <Text style={styles.weekDetailLabel}>Week {week.week}</Text>
-              <Text style={styles.weekDetailAmount}>
+              <AppText style={styles.weekDetailLabel}>Week {week.week}</AppText>
+              <AppText style={styles.weekDetailAmount}>
                 LKR {week.total.toFixed(2)}
-              </Text>
-              <Text style={styles.weekDetailDate}>
+              </AppText>
+              <AppText style={styles.weekDetailDate}>
                 {new Date(week.weekStart).getDate()} -{' '}
                 {new Date(week.weekEnd).getDate()}
-              </Text>
+              </AppText>
             </View>
           ))}
         </View>
@@ -201,7 +201,7 @@ const ChartsScreen: React.FC = () => {
 
       {/* Category Breakdown */}
       <View style={styles.chartCard}>
-        <Text style={styles.chartTitle}>🎯 Category Breakdown</Text>
+        <AppText style={styles.chartTitle}>🎯 Category Breakdown</AppText>
 
         {categoryPieData.length > 0 ? (
           <>
@@ -214,10 +214,10 @@ const ChartsScreen: React.FC = () => {
                 innerRadius={60}
                 centerLabelComponent={() => (
                   <View style={styles.pieCenter}>
-                    <Text style={styles.pieCenterAmount}>
+                    <AppText style={styles.pieCenterAmount}>
                       LKR {totalCategorySpending.toFixed(0)}
-                    </Text>
-                    <Text style={styles.pieCenterLabel}>Total</Text>
+                    </AppText>
+                    <AppText style={styles.pieCenterLabel}>Total</AppText>
                   </View>
                 )}
                 isAnimated
@@ -236,11 +236,11 @@ const ChartsScreen: React.FC = () => {
                     <View style={styles.categoryHeader}>
                       <View style={styles.categoryLabelContainer}>
                         <View style={[styles.categoryColorDot, { backgroundColor: color }]} />
-                        <Text style={styles.categoryName}>{category.category}</Text>
+                        <AppText style={styles.categoryName}>{category.category}</AppText>
                       </View>
-                      <Text style={styles.categoryAmount}>
+                      <AppText style={styles.categoryAmount}>
                         LKR {category.total.toFixed(2)}
-                      </Text>
+                      </AppText>
                     </View>
 
                     {/* Progress Bar */}
@@ -254,10 +254,10 @@ const ChartsScreen: React.FC = () => {
                     </View>
 
                     <View style={styles.categoryFooter}>
-                      <Text style={styles.categoryCount}>
+                      <AppText style={styles.categoryCount}>
                         {category.count} transaction{category.count !== 1 ? 's' : ''}
-                      </Text>
-                      <Text style={styles.categoryPercentage}>{percentage}%</Text>
+                      </AppText>
+                      <AppText style={styles.categoryPercentage}>{percentage}%</AppText>
                     </View>
                   </View>
                 );
@@ -266,15 +266,15 @@ const ChartsScreen: React.FC = () => {
 
             {/* Total Summary */}
             <View style={styles.totalContainer}>
-              <Text style={styles.totalLabel}>Total Spending</Text>
-              <Text style={styles.totalAmount}>
+              <AppText style={styles.totalLabel}>Total Spending</AppText>
+              <AppText style={styles.totalAmount}>
                 LKR {totalCategorySpending.toFixed(2)}
-              </Text>
+              </AppText>
             </View>
           </>
         ) : (
           <View style={styles.noDataContainer}>
-            <Text style={styles.noDataText}>No category data available</Text>
+            <AppText style={styles.noDataText}>No category data available</AppText>
           </View>
         )}
       </View>

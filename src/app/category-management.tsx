@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -10,6 +9,7 @@ import {
 } from 'react-native';
 import StorageService from '@/database/StorageService';
 import { CategoryKeyword } from '@/database/models/CategoryKeyword';
+import { AppText } from '@/components/AppText';
 
 const CategoryManagement: React.FC = () => {
   const [keywords, setKeywords] = useState<CategoryKeyword[]>([]);
@@ -96,7 +96,7 @@ const CategoryManagement: React.FC = () => {
     return (
       <View style={[styles.container, styles.centered]}>
         <ActivityIndicator size="large" color="#3498db" />
-        <Text style={styles.loadingText}>Loading learned categories...</Text>
+        <AppText style={styles.loadingText}>Loading learned categories...</AppText>
       </View>
     );
   }
@@ -104,11 +104,11 @@ const CategoryManagement: React.FC = () => {
   if (keywords.length === 0) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <Text style={styles.emptyIcon}>🎓</Text>
-        <Text style={styles.emptyTitle}>No Learned Categories Yet</Text>
-        <Text style={styles.emptyText}>
+        <AppText style={styles.emptyIcon}>🎓</AppText>
+        <AppText style={styles.emptyTitle}>No Learned Categories Yet</AppText>
+        <AppText style={styles.emptyText}>
           Parse SMS messages and adjust categories to teach the app your preferences.
-        </Text>
+        </AppText>
       </View>
     );
   }
@@ -116,18 +116,18 @@ const CategoryManagement: React.FC = () => {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Learned Categories</Text>
-        <Text style={styles.subtitle}>
+        <AppText style={styles.title}>Learned Categories</AppText>
+        <AppText style={styles.subtitle}>
           {keywords.length} merchant{keywords.length !== 1 ? 's' : ''} learned
-        </Text>
+        </AppText>
       </View>
 
       <View style={styles.infoBox}>
-        <Text style={styles.infoTitle}>💡 How it works</Text>
-        <Text style={styles.infoText}>
+        <AppText style={styles.infoTitle}>💡 How it works</AppText>
+        <AppText style={styles.infoText}>
           When you parse an SMS and change the category before saving, the app learns your
           preference. Higher confidence means more consistent categorization.
-        </Text>
+        </AppText>
       </View>
 
       {Object.entries(groupedKeywords).map(([category, categoryKeywords]) => {
@@ -141,17 +141,17 @@ const CategoryManagement: React.FC = () => {
               activeOpacity={0.7}
             >
               <View style={styles.categoryHeaderLeft}>
-                <Text style={styles.categoryTitle}>{category}</Text>
-                <Text style={styles.categoryCount}>{categoryKeywords.length}</Text>
+                <AppText style={styles.categoryTitle}>{category}</AppText>
+                <AppText style={styles.categoryCount}>{categoryKeywords.length}</AppText>
               </View>
-              <Text style={styles.expandIcon}>{isExpanded ? '▼' : '▶'}</Text>
+              <AppText style={styles.expandIcon}>{isExpanded ? '▼' : '▶'}</AppText>
             </TouchableOpacity>
 
             {isExpanded &&
               categoryKeywords.map((keyword) => (
                 <View key={keyword.id} style={styles.keywordCard}>
                   <View style={styles.keywordInfo}>
-                    <Text style={styles.keywordText}>{keyword.keyword}</Text>
+                    <AppText style={styles.keywordText}>{keyword.keyword}</AppText>
                     <View style={styles.confidenceContainer}>
                       <View
                         style={[
@@ -159,7 +159,7 @@ const CategoryManagement: React.FC = () => {
                           { backgroundColor: getConfidenceColor(keyword.confidence) },
                         ]}
                       >
-                        <Text style={styles.confidenceText}>{keyword.confidence}x</Text>
+                        <AppText style={styles.confidenceText}>{keyword.confidence}x</AppText>
                       </View>
                     </View>
                   </View>
@@ -167,7 +167,7 @@ const CategoryManagement: React.FC = () => {
                     onPress={() => handleDeleteKeyword(keyword)}
                     style={styles.deleteButton}
                   >
-                    <Text style={styles.deleteButtonText}>🗑️</Text>
+                    <AppText style={styles.deleteButtonText}>🗑️</AppText>
                   </TouchableOpacity>
                 </View>
               ))}

@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   Alert,
@@ -15,6 +14,7 @@ import { Expense } from '@/database/models/Expense';
 import ExpenseList from '@/components/ExpenseList';
 import ExpenseForm from '@/components/ExpenseForm';
 import { useInitDatabase } from '@/hooks/useInitDatabase';
+import { AppText } from '@/components/AppText';
 
 const HomeScreen: React.FC = () => {
   const router = useRouter();
@@ -58,8 +58,8 @@ const HomeScreen: React.FC = () => {
   if (error && !isLoading) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <Text style={styles.errorIcon}>❌</Text>
-        <Text style={styles.errorText}>{error}</Text>
+        <AppText style={styles.errorIcon}>❌</AppText>
+        <AppText style={styles.errorText}>{error}</AppText>
         <Button title="Retry" onPress={retryInit} color="#3498db" />
       </View>
     );
@@ -69,7 +69,7 @@ const HomeScreen: React.FC = () => {
     return (
       <View style={[styles.container, styles.centered]}>
         <ActivityIndicator size="large" color="#3498db" />
-        <Text style={styles.loadingText}>Loading database...</Text>
+        <AppText style={styles.loadingText}>Loading database...</AppText>
       </View>
     );
   }
@@ -78,18 +78,18 @@ const HomeScreen: React.FC = () => {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <Text style={styles.title}>Expense Tracker</Text>
+          <AppText style={styles.title}>Expense Tracker</AppText>
           <TouchableOpacity
             onPress={() => router.push('/category-management')}
             style={styles.settingsButton}
           >
-            <Text style={styles.settingsIcon}>🎓</Text>
+            <AppText style={styles.settingsIcon}>🎓</AppText>
           </TouchableOpacity>
         </View>
 
         <View style={styles.totalContainer}>
-          <Text style={styles.totalLabel}>Month&#39;s Expenses:</Text>
-          <Text style={styles.totalAmount}>LKR {totalExpenses.toFixed(2)}</Text>
+          <AppText style={styles.totalLabel}>Month&#39;s Expenses:</AppText>
+          <AppText style={styles.totalAmount}>LKR {totalExpenses.toFixed(2)}</AppText>
         </View>
       </View>
 
@@ -101,7 +101,7 @@ const HomeScreen: React.FC = () => {
       />
 
       <View style={styles.expensesList}>
-        <Text style={styles.subtitle}>Recent Expenses</Text>
+        <AppText style={styles.subtitle}>Recent Expenses</AppText>
         <ExpenseList
           expenses={expenses}
           categories={categories}

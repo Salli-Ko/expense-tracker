@@ -1,7 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import {
   View,
-  Text,
   TextInput,
   Button,
   StyleSheet,
@@ -19,6 +18,7 @@ import { Category } from '@/database/models/Category';
 import { transactionParser } from '@/transaction-parser/TransactionParser';
 import IconPicker from '@/components/IconPicker';
 import { Ionicons } from '@expo/vector-icons';
+import { AppText } from '@/components/AppText';
 
 interface ExpenseFormProps {
   categories: Category[];
@@ -282,9 +282,9 @@ You can change the category if needed. The app will learn from your corrections.
                   style={styles.categoryIcon}
                 />
               )}
-              <Text style={styles.categoryButtonText}>{category || 'Select Category'}</Text>
+              <AppText style={styles.categoryButtonText}>{category || 'Select Category'}</AppText>
             </View>
-            <Text style={styles.categoryButtonIcon}>▼</Text>
+            <AppText style={styles.categoryButtonIcon}>▼</AppText>
           </TouchableOpacity>
 
           <Modal
@@ -296,9 +296,9 @@ You can change the category if needed. The app will learn from your corrections.
             <View style={styles.modalOverlay}>
               <View style={styles.modalContent}>
                 <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Select Category</Text>
+                  <AppText style={styles.modalTitle}>Select Category</AppText>
                   <TouchableOpacity onPress={() => setShowCategoryPicker(false)}>
-                    <Text style={styles.modalDone}>Done</Text>
+                    <AppText style={styles.modalDone}>Done</AppText>
                   </TouchableOpacity>
                 </View>
 
@@ -341,17 +341,17 @@ You can change the category if needed. The app will learn from your corrections.
 
   return (
     <View style={styles.form}>
-      <Text style={styles.formTitle}>Add New Expense</Text>
+      <AppText style={styles.formTitle}>Add New Expense</AppText>
 
       <TouchableOpacity
         style={styles.smsToggle}
         onPress={() => setIsSmsExpanded(!isSmsExpanded)}
         activeOpacity={0.7}
       >
-        <Text style={styles.smsToggleText}>
+        <AppText style={styles.smsToggleText}>
           {isSmsExpanded ? '📱 Hide SMS Parser' : '📱 Parse Bank SMS'}
-        </Text>
-        <Text style={styles.smsToggleIcon}>{isSmsExpanded ? '▼' : '▶'}</Text>
+        </AppText>
+        <AppText style={styles.smsToggleIcon}>{isSmsExpanded ? '▼' : '▶'}</AppText>
       </TouchableOpacity>
 
       {isSmsExpanded && (
@@ -373,22 +373,22 @@ You can change the category if needed. The app will learn from your corrections.
           <View style={styles.divider} />
 
           <View style={styles.categoryHeader}>
-            <Text style={styles.label}>Category</Text>
+            <AppText style={styles.label}>Category</AppText>
             <TouchableOpacity
               style={styles.addCategoryButton}
               onPress={() => setShowNewCategoryModal(true)}
             >
-              <Text style={styles.addCategoryButtonText}>+ New Category</Text>
+              <AppText style={styles.addCategoryButtonText}>+ New Category</AppText>
             </TouchableOpacity>
           </View>
 
           {parsedMerchant && originalCategory && (
-            <Text style={styles.learningHint}>💡 Change category to teach the app</Text>
+            <AppText style={styles.learningHint}>💡 Change category to teach the app</AppText>
           )}
 
           {renderCategoryPicker()}
 
-          <Text style={styles.label}>Amount (LKR)</Text>
+          <AppText style={styles.label}>Amount (LKR)</AppText>
           <TextInput
             style={styles.input}
             keyboardType="decimal-pad"
@@ -399,9 +399,9 @@ You can change the category if needed. The app will learn from your corrections.
           />
 
           <View style={styles.descriptionHeader}>
-            <Text style={styles.label}>Description (Optional)</Text>
+            <AppText style={styles.label}>Description (Optional)</AppText>
             <TouchableOpacity style={styles.suggestButton} onPress={handleSuggestCategory}>
-              <Text style={styles.suggestButtonText}>💡 Suggest Category</Text>
+              <AppText style={styles.suggestButtonText}>💡 Suggest Category</AppText>
             </TouchableOpacity>
           </View>
 
@@ -415,7 +415,7 @@ You can change the category if needed. The app will learn from your corrections.
             onChangeText={setDescription}
           />
 
-          <Text style={styles.label}>Date</Text>
+          <AppText style={styles.label}>Date</AppText>
 
           {Platform.OS === 'web' ? (
             <input
@@ -429,10 +429,10 @@ You can change the category if needed. The app will learn from your corrections.
               onPress={() => setShowDatePicker(!showDatePicker)}
               style={styles.dateButton}
             >
-              <Text style={styles.dateButtonText}>
+              <AppText style={styles.dateButtonText}>
                 {date ? date.toDateString() : 'Select Date'}
-              </Text>
-              <Text style={styles.dateButtonIcon}>📅</Text>
+              </AppText>
+              <AppText style={styles.dateButtonIcon}>📅</AppText>
             </TouchableOpacity>
           )}
 
@@ -450,10 +450,10 @@ You can change the category if needed. The app will learn from your corrections.
 
           <View style={styles.actionButtons}>
             <TouchableOpacity style={styles.clearButton} onPress={handleClearForm}>
-              <Text style={styles.clearButtonText}>🗑️ Clear</Text>
+              <AppText style={styles.clearButtonText}>🗑️ Clear</AppText>
             </TouchableOpacity>
             <TouchableOpacity style={styles.addButton} onPress={handleAddExpense}>
-              <Text style={styles.addButtonText}>➕ Add Expense</Text>
+              <AppText style={styles.addButtonText}>➕ Add Expense</AppText>
             </TouchableOpacity>
           </View>
         </View>
@@ -470,16 +470,16 @@ You can change the category if needed. The app will learn from your corrections.
           <View style={styles.newCategoryModal}>
             <ScrollView>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Add New Category</Text>
+                <AppText style={styles.modalTitle}>Add New Category</AppText>
                 <TouchableOpacity onPress={() => setShowNewCategoryModal(false)}>
-                  <Text style={styles.modalClose}>✕</Text>
+                  <AppText style={styles.modalClose}>✕</AppText>
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.label}>Category Icon (Optional)</Text>
+              <AppText style={styles.label}>Category Icon (Optional)</AppText>
               <IconPicker selectedIcon={newCategoryIcon} onSelectIcon={setNewCategoryIcon} />
 
-              <Text style={styles.label}>Category Name</Text>
+              <AppText style={styles.label}>Category Name</AppText>
               <TextInput
                 style={styles.input}
                 placeholder="e.g., GROCERIES, ENTERTAINMENT"
@@ -489,10 +489,10 @@ You can change the category if needed. The app will learn from your corrections.
                 autoCapitalize="characters"
               />
 
-              <Text style={styles.label}>Keywords (comma-separated)</Text>
-              <Text style={styles.hint}>
+              <AppText style={styles.label}>Keywords (comma-separated)</AppText>
+              <AppText style={styles.hint}>
                 Add keywords that identify this category (e.g., store names, merchant types)
-              </Text>
+              </AppText>
               <TextInput
                 style={[styles.input, styles.textArea]}
                 placeholder="e.g., keells, cargills, arpico"
@@ -512,11 +512,11 @@ You can change the category if needed. The app will learn from your corrections.
                     setNewCategoryKeywords('');
                   }}
                 >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                  <AppText style={styles.cancelButtonText}>Cancel</AppText>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.createButton} onPress={handleAddNewCategory}>
-                  <Text style={styles.createButtonText}>Create Category</Text>
+                  <AppText style={styles.createButtonText}>Create Category</AppText>
                 </TouchableOpacity>
               </View>
             </ScrollView>

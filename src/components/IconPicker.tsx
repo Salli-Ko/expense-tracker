@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   Modal,
@@ -9,6 +8,7 @@ import {
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { AppText } from '@/components/AppText';
 
 interface IconPickerProps {
   selectedIcon?: string;
@@ -59,9 +59,9 @@ const IconPicker: React.FC<IconPickerProps> = ({ selectedIcon, onSelectIcon }) =
             color={selectedIcon ? '#3498db' : '#bdc3c7'}
           />
         </View>
-        <Text style={styles.buttonText}>
+        <AppText style={styles.buttonText}>
           {selectedIcon ? 'Change Icon' : 'Select Icon'}
-        </Text>
+        </AppText>
       </TouchableOpacity>
 
       {/* Modal */}
@@ -75,7 +75,7 @@ const IconPicker: React.FC<IconPickerProps> = ({ selectedIcon, onSelectIcon }) =
           <View style={styles.modal}>
             {/* Header */}
             <View style={styles.header}>
-              <Text style={styles.title}>Select Icon</Text>
+              <AppText style={styles.title}>Select Icon</AppText>
               <TouchableOpacity onPress={() => setVisible(false)}>
                 <Ionicons name="close" size={28} color="#666" />
               </TouchableOpacity>

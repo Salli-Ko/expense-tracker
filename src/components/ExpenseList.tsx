@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Expense } from '@/database/models/Expense';
 import { Category } from '@/database/models/Category';
+import { AppText } from '@/components/AppText';
 
 interface ExpenseListProps {
   expenses: Expense[];
@@ -78,8 +79,8 @@ const ExpenseList: React.FC<ExpenseListProps> = ({
   if (expenses.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyIcon}>📭</Text>
-        <Text style={styles.emptyText}>No expenses yet</Text>
+        <AppText style={styles.emptyIcon}>📭</AppText>
+        <AppText style={styles.emptyText}>No expenses yet</AppText>
       </View>
     );
   }
@@ -91,10 +92,10 @@ const ExpenseList: React.FC<ExpenseListProps> = ({
       renderItem={({ item: group }) => (
         <View style={styles.dateGroup}>
           <View style={styles.dateHeader}>
-            <Text style={styles.dateText}>{group.date}</Text>
-            <Text style={styles.dateTotal}>
+            <AppText style={styles.dateText}>{group.date}</AppText>
+            <AppText style={styles.dateTotal}>
               LKR {group.expenses.reduce((sum, exp) => sum + exp.amount, 0).toFixed(2)}
-            </Text>
+            </AppText>
           </View>
 
           {group.expenses.map((expense) => {
@@ -118,19 +119,19 @@ const ExpenseList: React.FC<ExpenseListProps> = ({
                           color="#3498db"
                           style={styles.categoryIcon}
                         />
-                        <Text style={styles.categoryText}>{expense.category}</Text>
+                        <AppText style={styles.categoryText}>{expense.category}</AppText>
                       </View>
 
                       {/* Description */}
                       {expense.description && (
-                        <Text style={styles.descriptionText} numberOfLines={1}>
+                        <AppText style={styles.descriptionText} numberOfLines={1}>
                           {expense.description}
-                        </Text>
+                        </AppText>
                       )}
                     </View>
 
                     {/* Amount */}
-                    <Text style={styles.amountText}>LKR {formatAmount(expense.amount)}</Text>
+                    <AppText style={styles.amountText}>LKR {formatAmount(expense.amount)}</AppText>
                   </View>
                 </TouchableOpacity>
 
@@ -143,8 +144,8 @@ const ExpenseList: React.FC<ExpenseListProps> = ({
                         setSelectedExpenseId(null);
                       }}
                     >
-                      <Text style={styles.actionIcon}>✏️</Text>
-                      <Text style={styles.actionText}>Edit</Text>
+                      <AppText style={styles.actionIcon}>✏️</AppText>
+                      <AppText style={styles.actionText}>Edit</AppText>
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -154,8 +155,8 @@ const ExpenseList: React.FC<ExpenseListProps> = ({
                         setSelectedExpenseId(null);
                       }}
                     >
-                      <Text style={styles.actionIcon}>🗑️</Text>
-                      <Text style={styles.actionText}>Delete</Text>
+                      <AppText style={styles.actionIcon}>🗑️</AppText>
+                      <AppText style={styles.actionText}>Delete</AppText>
                     </TouchableOpacity>
                   </View>
                 )}
