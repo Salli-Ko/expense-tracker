@@ -1,3 +1,4 @@
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import '../../global.css';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
@@ -32,6 +33,7 @@ export default function RootLayout() {
   }
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <ErrorBoundary
       onError={(error, errorInfo) => {
         // Optional: Log to error reporting service
@@ -64,5 +66,6 @@ export default function RootLayout() {
         <StatusBar style="auto" />
       </ThemeProvider>
     </ErrorBoundary>
+    </GestureHandlerRootView>
   );
 }

@@ -11,7 +11,7 @@ import {
 import { useRouter } from 'expo-router';
 import StorageService from '@/database/StorageService';
 import { Expense } from '@/database/models/Expense';
-import ExpenseList from '@/components/ExpenseList';
+import ExpenseList from '@/components/expense/ExpenseList';
 import ExpenseForm from '@/components/ExpenseForm';
 import { useInitDatabase } from '@/hooks/useInitDatabase';
 import { AppText } from '@/components/AppText';

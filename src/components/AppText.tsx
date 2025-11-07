@@ -39,7 +39,7 @@ export const AppText = ({ children, style, ...otherProps }: TextProps) => {
 
   return (
     <Text
-      style={[styles.defaultText, { color: isDark ? "#FFFFFF" : "#333333" }, style]}
+      style={[styles.defaultText, style]}
       {...otherProps}
     >
       {children}

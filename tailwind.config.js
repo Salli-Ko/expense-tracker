@@ -6,7 +6,25 @@ module.exports = {
   ],
   presets: [require("nativewind/preset")],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        light: {
+          "primary": "#5E9978",
+          "secondary": "#D8EDE1",
+          "text-primary": "#1A1A1A",
+          "text-secondary": "#484C52",
+          "background": "#FAFAFA",
+        },
+        dark: {
+          "primary": "#5E9978",
+          "secondary": "#D8EDE1",
+          "text-primary": "#1A1A1A",
+          "text-secondary": "#484C52",
+          "background": "#FAFAFA",
+        },
+      },
+    },
   },
   plugins: [],
+  darkMode: "class", // Enables dark mode via a 'dark' class
 };
