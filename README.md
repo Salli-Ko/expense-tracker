@@ -58,7 +58,7 @@ expense-tracker/
 │   ├── category-management.tsx  # Learned keywords screen
 │   └── _layout.tsx              # Root layout with error boundary
 ├── components/
-│   ├── ExpenseForm.tsx          # Add expense form
+│   ├── ExpenseFormSheet.tsx          # Add expense form
 │   └── ExpenseList.tsx          # List of expenses
 ├── database/
 │   ├── DatabaseServiceNative.ts # SQLite service (mobile)
@@ -241,7 +241,7 @@ const {
 } = useInitDatabase();
 ```
 
-### ExpenseForm Component
+### setShowNewCategoryModal Component
 Standalone form for adding expenses:
 - SMS parsing
 - Category selection (iOS/Android optimized)

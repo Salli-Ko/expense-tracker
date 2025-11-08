@@ -22,7 +22,7 @@ export const ExpenseGroup = ({
   onEdit,
   onDelete,
 }: TExpenseGroupProps) => (
-  <View className="mx-4 mb-6">
+  <View className="mb-6">
     <View className="flex-row justify-between items-center py-2 px-3 bg-light-secondary dark:bg-dark-secondary rounded-lg mb-3">
       <AppText className="text-sm font-semibold text-light-text-primary dark:text-dark-text-primary">
         {date}
@@ -33,7 +33,7 @@ export const ExpenseGroup = ({
     </View>
 
     {expenses.map((expense, idx) => (
-      <View key={expense.id} className={idx > 0 ? 'mt-3' : ''}>
+      <View key={expense.id} className={idx > 0 ? 'mt-2.5' : ''}>
         <Swipeable
           renderRightActions={(progress) => (
             <SwipeActions
