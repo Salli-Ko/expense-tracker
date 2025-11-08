@@ -3,6 +3,7 @@ import { TExpenseFormState } from '@/hooks/useExpenseFormState';
 import StorageService from '@/database/StorageService';
 import { Alert } from 'react-native';
 import { parseCategoryKeywords, validateNewCategory } from '@/util/category-utils';
+import { CategoryKeyword } from '@/database/models/CategoryKeyword';
 
 type TNewCategoryInput = {
   name: string;
@@ -46,4 +47,36 @@ export const handleAddCategory = async (
     console.error('Error creating category:', error);
     Alert.alert('Error', 'Failed to create category');
   }
+};
+
+/**
+ * Handles deletion of a learned category keyword with confirmation prompt.
+ */
+export const handleDeleteCategoryKeyword = async (
+  keyword: CategoryKeyword,
+  refreshList: () => Promise<void>,
+) => {
+  Alert.alert(
+    'Delete Learned Association',
+    `Remove "${keyword.keyword}" from Categories?`,
+    [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            if (keyword.id) {
+              await StorageService.deleteCategoryKeyword(keyword.id);
+              await refreshList();
+              Alert.alert('Success', 'Association deleted');
+            }
+          } catch (error) {
+            console.error('Error deleting category keyword:', error);
+            Alert.alert('Error', 'Failed to delete association');
+          }
+        },
+      },
+    ],
+  );
 };
