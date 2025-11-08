@@ -6,6 +6,7 @@ import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { SwipeActions } from '@/components/expense/SwipeActions';
 import { Expense } from '@/database/models/Expense';
 import { IoniconName } from '@/constants/categoryColors';
+import { formatCurrency } from '@/util/common-utils';
 
 type TExpenseGroupProps = {
   date: string;
@@ -28,7 +29,7 @@ export const ExpenseGroup = ({
         {date}
       </AppText>
       <AppText className="text-sm font-semibold text-light-primary dark:text-dark-primary">
-        LKR {expenses.reduce((sum, exp) => sum + exp.amount, 0).toFixed(2)}
+        {formatCurrency(expenses.reduce((sum, exp) => sum + exp.amount, 0))}
       </AppText>
     </View>
 
@@ -48,7 +49,7 @@ export const ExpenseGroup = ({
           <ExpenseItemCard
             icon={getCategoryIcon(expense.category) as IoniconName}
             label={expense.category}
-            amount={`LKR ${expense.amount.toFixed(2)}`}
+            amount={formatCurrency(expense.amount)}
             description={expense.description}
           />
         </Swipeable>

@@ -24,7 +24,7 @@ export const Header = ({ title, description }: THeaderProps) => {
         </TouchableOpacity>
       </View>
       <View className="flex-col items-start rounded-lg gap-1">
-        <AppText className="text-light-text-primary text-[40px] font-bold">
+        <AppText className="text-light-text-primary font-bold text-[40px]">
           {title}
         </AppText>
         <AppText className="text-light-text-secondary dark:text-dark-secondary text-base font-semibold">

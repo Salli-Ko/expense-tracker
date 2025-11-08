@@ -9,6 +9,7 @@ import { ErrorState } from '@/components/home/ErrorState';
 import { handleDeleteExpense, handleEditExpense } from '@/controllers/expenseController';
 import Body from '@/components/Body';
 import { SmsParserInput } from '@/components/SmsParserInput';
+import { formatCurrency } from '@/util/common-utils';
 
 const Home = () => {
   const {
@@ -28,7 +29,7 @@ const Home = () => {
 
   return (
     <ScrollView className="flex-1 bg-light-background dark:bg-dark-background">
-      <Header title={`LKR ${totalExpenses.toFixed(2)}`} description="Monthly Expenses" />
+      <Header title={formatCurrency(totalExpenses)} description="Monthly Expenses" />
 
       <Body>
         <SmsParserInput

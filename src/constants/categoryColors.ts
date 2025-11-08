@@ -3,14 +3,27 @@ import { Ionicons } from '@expo/vector-icons';
 
 export type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 export const CATEGORY_COLORS: Record<string, string> = {
-  Groceries: '#E6F2FF', // Soft Blue
-  Fuel: '#FFF5E6',      // Light Peach
-  Dining: '#FFEEF0',    // Blush Pink
-  Transport: '#E6F9F3',   // Pale Green
-  Utilities: '#F5EEFF',   // Muted Lavender
-  Healthcare: '#FFFCE6',  // Creamy Yellow
-  Shopping: '#F0F4F8',    // Pale Grey-Blue
-  Entertainment: '#DFF9FF', // Slightly more vibrant light blue
-  Food: '#FFEBE6',      // Soft Coral/Orange
-  Other: '#F8F8F2',       // Very light grey (neutral for 'Other')
+  Groceries: '#E8F1FF',      // Soft Cool Blue
+  Fuel: '#FFF3E6',           // Gentle Light Orange
+  Dining: '#FFE8EB',         // Soft Pink
+  Transport: '#E6F8F2',      // Pale Mint
+  Utilities: '#F3EDFF',      // Subtle Lavender
+  Healthcare: '#FFFBE6',     // Creamy Light Yellow
+  Shopping: '#EEF3F6',       // Misty Grey-Blue
+  Entertainment: '#E6F7FB',  // Light Cyan Blue
+  Food: '#FFEAE2',           // Soft Peach
+  Other: '#F7F7F2',          // Neutral Off White
+};
+
+export const CATEGORY_PROGRESS_COLORS: Record<string, string> = {
+  Groceries: '#4F8DFE',      // Clean Sky Blue
+  Fuel: '#FFB74D',           // Warm Sunset Orange
+  Dining: '#FF7A8A',         // Soft Rose Pink
+  Transport: '#2DC9A7',      // Balanced Aqua Green
+  Utilities: '#A185FF',      // Calm Lavender Purple
+  Healthcare: '#F3C43F',     // Subtle Golden Yellow
+  Shopping: '#8AA2B0',       // Gentle Slate Blue
+  Entertainment: '#4AC9F6',  // Fresh Cyan
+  Food: '#FF8660',           // Mild Coral Orange
+  Other: '#C6C6C6',          // Light Grey Neutral
 };
