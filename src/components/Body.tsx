@@ -3,7 +3,7 @@ import { View } from 'react-native';
 
 const Body = ({ children }: PropsWithChildren) => {
   return (
-    <View className="bg-white dark:bg-dark-background rounded-t-3xl -mt-4 pt-6 px-4">
+    <View className="flex-1 w-full bg-white dark:bg-dark-background rounded-t-3xl -mt-4 pt-6 px-4">
       {children}
     </View>
   );

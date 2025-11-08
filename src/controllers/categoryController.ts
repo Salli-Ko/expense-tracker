@@ -2,7 +2,7 @@ import { Category } from '@/database/models/Category';
 import { TExpenseFormState } from '@/hooks/useExpenseFormState';
 import StorageService from '@/database/StorageService';
 import { Alert } from 'react-native';
-import { parseCategoryKeywords, validateNewCategory } from '@/util/category';
+import { parseCategoryKeywords, validateNewCategory } from '@/util/category-utils';
 
 type TNewCategoryInput = {
   name: string;

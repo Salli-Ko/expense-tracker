@@ -25,7 +25,7 @@ const Home = () => {
   } = useInitDatabase();
 
   if (error && !isLoading) return <ErrorState error={error} retryInit={retryInit} />;
-  if (isLoading || !isDbReady) return <Loader />;
+  if (isLoading || !isDbReady) return <Loader title="Loading database..."/> ;
 
   return (
     <ScrollView className="flex-1 bg-light-background dark:bg-dark-background">

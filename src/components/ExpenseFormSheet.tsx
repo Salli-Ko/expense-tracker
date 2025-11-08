@@ -12,7 +12,7 @@ import { TExpenseFormState } from '@/hooks/useExpenseFormState';
 import { Section } from '@/components/Section';
 import { handleAddExpense } from '@/controllers/expenseController';
 import { handleAddCategory } from '@/controllers/categoryController';
-import { suggestKeywordsFromDescription } from '@/util/category';
+import { suggestKeywordsFromDescription } from '@/util/category-utils';
 import { formatDateForInput } from '@/util/date-utils';
 
 type TExpenseFormSheetProps = {
