@@ -321,11 +321,17 @@ class DatabaseServiceNative implements IDatabase {
             console.warn(`SQLite: Could not add keyword "${keyword}"`);
           }
         }
-
         console.log(`SQLite: Added ${addedCount} keyword(s) to new category "${category.name}"`);
       }
 
-      return categoryId;
+      return {
+        id: categoryId,
+        name: category.name,
+        icon: category.icon,
+        color: category.color,
+        createdAt: category.createdAt,
+        updatedAt: category.updatedAt,
+      };
     } catch (error) {
       console.error('SQLite: Error inserting category:', error);
       throw error;

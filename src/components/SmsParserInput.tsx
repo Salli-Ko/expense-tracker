@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { View, TouchableOpacity } from 'react-native';
 import { AppText, AppTextInput } from '@/components/AppText';
-import { transactionParser } from '@/transaction-parser/TransactionParser';
 import { ExpenseFormSheet } from '@/components/ExpenseFormSheet';
+import { useExpenseFormState } from '@/hooks/useExpenseFormState';
 import { Category } from '@/database/models/Category';
+import { useSmsParser } from '@/hooks/useSMSParser';
 
 type TSmsParserInputProps = {
   categories: Category[];
@@ -20,42 +21,24 @@ export const SmsParserInput = ({
 }: TSmsParserInputProps) => {
   const [smsMessage, setSmsMessage] = useState('');
   const [isSheetVisible, setIsSheetVisible] = useState(false);
-  const [category, setCategory] = useState<string>('');
-  const [amount, setAmount] = useState<string>('');
-  const [date, setDate] = useState<Date | null>(null);
-  const [description, setDescription] = useState<string>('');
-  const [parsedMerchant, setParsedMerchant] = useState<string>('');
-  const [originalCategory, setOriginalCategory] = useState<string>('');
+
+  const { error, parseSms } = useSmsParser();
+  const { form, setForm, resetForm } = useExpenseFormState();
 
   const handleParseSMS = async () => {
-    if (!smsMessage.trim()) {
-      alert('Please paste your bank SMS first');
-      return;
-    }
+    const parsed = await parseSms(smsMessage);
+    if (!parsed) return;
 
-    try {
-      const parsed = await transactionParser.parse(smsMessage);
+    setForm({
+      category: parsed.categoryName,
+      amount: parsed.amount.toString(),
+      description: parsed.merchant || '',
+      date: parsed.date,
+      parsedMerchant: parsed.merchant || '',
+      originalCategory: parsed.categoryName,
+    });
 
-      if (!parsed || parsed.amount === 0) {
-        alert('Could not extract amount or category from this message');
-        return;
-      }
-
-      // Set category name (for display in picker)
-      setCategory(parsed.categoryName);
-      setAmount(parsed.amount.toString());
-      setDescription(parsed.merchant || '');
-      setDate(parsed.date);
-
-      // Store parsed data for learning
-      setParsedMerchant(parsed.merchant || '');
-      setOriginalCategory(parsed.categoryName);
-
-      setIsSheetVisible(true);
-    } catch (error) {
-      console.error('Error parsing SMS:', error);
-      alert('Failed to parse SMS message');
-    }
+    setIsSheetVisible(true);
   };
 
   return (
@@ -78,6 +61,8 @@ export const SmsParserInput = ({
         onChangeText={setSmsMessage}
       />
 
+      {error && <AppText className="text-red-500 text-sm">{error}</AppText>}
+
       <TouchableOpacity
         onPress={handleParseSMS}
         activeOpacity={0.8}
@@ -89,23 +74,14 @@ export const SmsParserInput = ({
       <ExpenseFormSheet
         isSheetVisible={isSheetVisible}
         setIsSheetVisible={setIsSheetVisible}
-        category={category}
         categories={categories}
-        description={description}
-        setDescription={setDescription}
-        setCategory={setCategory}
         refetchCategories={refetchCategories}
-        amount={amount}
-        setAmount={setAmount}
-        parsedMerchant={parsedMerchant}
-        originalCategory={originalCategory}
-        setParsedMerchant={setParsedMerchant}
-        setOriginalCategory={setOriginalCategory}
-        date={date}
-        setDate={setDate}
         isDbReady={isDbReady}
         onExpenseAdded={onExpenseAdded}
         setSmsMessage={setSmsMessage}
+        form={form}
+        setForm={setForm}
+        resetForm={resetForm}
       />
     </View>
   );
