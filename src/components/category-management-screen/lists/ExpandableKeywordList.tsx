@@ -37,7 +37,7 @@ export const ExpandableKeywordList = ({
         return (
           <View
             key={category}
-            className="bg-white dark:bg-dark-card mb-5 rounded-2xl px-5 py-4 shadow-sm border border-gray-300"
+            className="bg-light-background dark:bg-dark-background mb-5 rounded-2xl px-5 py-4 shadow-sm border border-gray-300 dark:border-gray-700"
           >
             <TouchableOpacity
               onPress={() => toggleCategory(category)}
@@ -45,20 +45,24 @@ export const ExpandableKeywordList = ({
               className="flex-row justify-between items-center"
             >
               <View className="flex-row items-center gap-3">
-                <AppText className="text-xl font-semibold text-gray-900 dark:text-white">
+                <AppText className="text-xl font-semibold text-gray-900 dark:text-dark-text-primary">
                   {category}
                 </AppText>
 
-                <View className="bg-light-primary px-4 py-2 rounded-full items-center justify-center">
-                  <AppText className="text-xs font-medium text-white">{keywords.length}</AppText>
+                <View className="bg-light-primary dark:bg-dark-primary px-4 py-2 rounded-full items-center justify-center">
+                  <AppText className="text-xs font-medium text-white dark:text-light-text-primary">
+                    {keywords.length}
+                  </AppText>
                 </View>
               </View>
 
-              <Ionicons
-                name={isExpanded ? 'chevron-up-outline' : 'chevron-down-outline'}
-                size={20}
-                color="#666"
-              />
+              <View className="text-light-text-secondary dark:text-dark-text-secondary">
+                <Ionicons
+                  name={isExpanded ? 'chevron-up-outline' : 'chevron-down-outline'}
+                  size={20}
+                  color="#666"
+                />
+              </View>
             </TouchableOpacity>
 
             {isExpanded && (

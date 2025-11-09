@@ -5,7 +5,7 @@ import ExpenseItemCard from '@/components/home-screen/expense/ExpenseItemCard';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { SwipeActions } from '@/components/home-screen/actions/SwipeActions';
 import { Expense } from '@/database/models/Expense';
-import { IoniconName } from '@/constants/categoryColors';
+import { CategoryName, IoniconName } from '@/constants/categoryColors';
 import { formatCurrency } from '@/util/common-utils';
 
 type TExpenseGroupProps = {
@@ -48,7 +48,7 @@ export const ExpenseGroup = ({
         >
           <ExpenseItemCard
             icon={getCategoryIcon(expense.category) as IoniconName}
-            label={expense.category}
+            label={expense.category as CategoryName}
             amount={formatCurrency(expense.amount)}
             description={expense.description}
           />

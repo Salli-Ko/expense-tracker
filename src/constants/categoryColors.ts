@@ -2,18 +2,34 @@ import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 
 export type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
-export const CATEGORY_COLORS: Record<string, string> = {
-  Groceries: '#E8F1FF',      // Soft Cool Blue
-  Fuel: '#FFF3E6',           // Gentle Light Orange
-  Dining: '#FFE8EB',         // Soft Pink
-  Transport: '#E6F8F2',      // Pale Mint
-  Utilities: '#F3EDFF',      // Subtle Lavender
-  Healthcare: '#FFFBE6',     // Creamy Light Yellow
-  Shopping: '#EEF3F6',       // Misty Grey-Blue
-  Entertainment: '#E6F7FB',  // Light Cyan Blue
-  Food: '#FFEAE2',           // Soft Peach
-  Other: '#F7F7F2',          // Neutral Off White
+export const CATEGORY_COLORS = {
+  light: {
+    Groceries: '#E8F1FF',      // Soft Cool Blue
+    Fuel: '#FFF3E6',           // Gentle Light Orange
+    Dining: '#FFE8EB',         // Soft Pink
+    Transport: '#E6F8F2',      // Pale Mint
+    Utilities: '#F3EDFF',       // Subtle Lavender
+    Healthcare: '#FFFBE6',     // Creamy Light Yellow
+    Shopping: '#EEF3F6',       // Misty Grey-Blue
+    Entertainment: '#E6F7FB',  // Light Cyan Blue
+    Food: '#FFEAE2',           // Soft Peach
+    Other: '#F7F7F2',          // Neutral Off White
+  } as const,
+  dark: {
+    Groceries: '#6A85B3',      // Clearer Slate Blue
+    Fuel: '#B36F20',           // Rich Rust Orange
+    Dining: '#B85C6E',         // Deep Rose
+    Transport: '#3BA788',      // Clear Mint
+    Utilities: '#7D6FCC',      // Vibrant Lavender
+    Healthcare: '#A39E36',     // Rich Olive
+    Shopping: '#6D8399',       // Medium Slate
+    Entertainment: '#3F88A0',  // Clear Cyan
+    Food: '#D96D4B',           // Terra Cotta / Rich Peach
+    Other: '#6B6B6B',          // Medium Grey
+  } as const,
 };
+
+export type CategoryName = keyof typeof CATEGORY_COLORS.light;
 
 export const CATEGORY_PROGRESS_COLORS: Record<string, string> = {
   Groceries: '#4F8DFE',      // Clean Sky Blue

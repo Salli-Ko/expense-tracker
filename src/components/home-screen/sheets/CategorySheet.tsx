@@ -36,7 +36,7 @@ export const CategorySheet = ({
 
       <Section title="Category Name">
         <AppTextInput
-          className="border border-gray-300 p-3 rounded-2xl"
+          className="border border-gray-300 dark:border-gray-700 p-3 rounded-2xl"
           placeholder="e.g., GROCERIES, ENTERTAINMENT"
           placeholderTextColor="#999"
           value={newCategoryName}
@@ -51,7 +51,7 @@ export const CategorySheet = ({
         </AppText>
 
         <AppTextInput
-          className="border rounded-xl border-gray-300 p-3"
+          className="border rounded-2xl border-gray-300 dark:border-gray-700 p-3"
           multiline
           placeholder="e.g., keells, cargills, arpico"
           placeholderTextColor="#999"
@@ -61,7 +61,7 @@ export const CategorySheet = ({
       </Section>
 
       <Section title="">
-        <View className="flex-row justify-between space-x-3 mt-2">
+        <View className="flex-row justify-between gap-3 mt-2">
           <TouchableOpacity
             onPress={onClose}
             className="flex-1 bg-gray-200 dark:bg-gray-700 py-3 rounded-xl items-center"

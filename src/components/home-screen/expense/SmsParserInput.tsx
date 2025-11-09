@@ -56,7 +56,7 @@ export const SmsParserInput = ({
         placeholderTextColor="#999"
         multiline
         textAlignVertical="top"
-        className="border rounded-xl border-gray-300 p-3 h-36 bg-white dark:bg-dark-card"
+        className="border rounded-xl border-gray-300 dark:border-gray-700 p-3 h-36 bg-white dark:bg-dark-background"
         value={smsMessage}
         onChangeText={setSmsMessage}
       />

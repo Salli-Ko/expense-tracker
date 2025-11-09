@@ -1,12 +1,12 @@
 import React from 'react';
-import { View } from 'react-native';
+import { useColorScheme, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppText } from '@/components/AppText';
-import { CATEGORY_COLORS, IoniconName } from '@/constants/categoryColors';
+import { CATEGORY_COLORS, CategoryName, IoniconName } from '@/constants/categoryColors';
 
 type TExpenseItemCardProps = {
   icon: IoniconName;
-  label: string;
+  label: CategoryName;
   amount: string;
   description?: string;
   isSelected?: boolean;
@@ -19,7 +19,13 @@ export default function ExpenseItemCard({
   description,
   isSelected = false,
 }: TExpenseItemCardProps) {
-  const backgroundColor = CATEGORY_COLORS[label];
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
+  const lightBg = CATEGORY_COLORS.light[label] || CATEGORY_COLORS.light.Other;
+  const darkBg = CATEGORY_COLORS.dark[label] || CATEGORY_COLORS.dark.Other;
+
+  const backgroundColor = isDark ? darkBg : lightBg;
 
   return (
     <View
@@ -41,7 +47,7 @@ export default function ExpenseItemCard({
           </AppText>
           {description && (
             <AppText
-              className="text-light-text-secondary dark:text-dark-text-secondary text-sm mt-0.5"
+              className="text-light-text-secondary dark:text-dark-text-primary text-sm mt-0.5"
               numberOfLines={1}
             >
               {description}

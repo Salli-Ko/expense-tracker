@@ -36,10 +36,10 @@ const CategoryCard = ({
     </View>
 
     <View className="flex-row justify-between items-center mt-2">
-      <AppText className="text-sm text-gray-500 dark:text-gray-400">
+      <AppText className="text-sm text-gray-500 dark:text-dark-text-primary">
         {transactions} {transactions === 1 ? 'Transaction' : 'Transactions'}
       </AppText>
-      <AppText className="text-sm text-gray-500 dark:text-gray-400">{percentage}%</AppText>
+      <AppText className="text-sm text-gray-500 dark:text-dark-text-primary">{percentage}%</AppText>
     </View>
   </View>
 );

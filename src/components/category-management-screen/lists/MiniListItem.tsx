@@ -11,14 +11,16 @@ type TMiniListItemProps = {
 
 export const MiniListItem = ({ title, count = 1, onDelete }: TMiniListItemProps) => {
   return (
-    <View className="flex-row items-center justify-between p-4 px-1 bg-light-background rounded-2xl">
-      <AppText className="text-base text-gray-900 dark:text-gray-100 flex-1">
+    <View className="flex-row items-center justify-between p-4 px-1 bg-light-background dark:bg-dark-background rounded-2xl">
+      <AppText className="text-base text-light-text-primary dark:text-dark-text-primary flex-1">
         {title}
       </AppText>
 
       <View className="flex-row items-center gap-3">
-        <View className="bg-light-primary rounded-2xl px-3 py-2 min-w-[36px] items-center justify-center">
-          <AppText className="text-sm font-medium text-white">{count}X</AppText>
+        <View className="bg-light-primary dark:bg-dark-primary rounded-2xl px-3 py-2 min-w-[36px] items-center justify-center">
+          <AppText className="text-sm font-medium text-white dark:text-light-text-primary">
+            {count}X
+          </AppText>
         </View>
 
         <TouchableOpacity

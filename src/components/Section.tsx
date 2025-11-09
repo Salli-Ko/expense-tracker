@@ -19,7 +19,7 @@ type TSectionProps = {
 export const Section = ({ title, rightButton, children }: TSectionProps) => (
   <View className="flex-col gap-3 mt-4">
     <View className="flex-row justify-between items-center">
-      <AppText className="text-xl">{title}</AppText>
+      <AppText className="text-xl dark:text-dark-text-primary">{title}</AppText>
       {rightButton && (
         <TouchableOpacity
           onPress={rightButton.onPress}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, TouchableOpacity, View } from 'react-native';
+import { Alert, TouchableOpacity, useColorScheme, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -43,6 +43,8 @@ export const ExpenseFormSheet = ({
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showNewCategoryModal, setShowNewCategoryModal] = useState(false);
   const [newCategory, setNewCategory] = useState({ name: '', keywords: '', icon: '' });
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
   const clearForm = () => {
     Alert.alert('Clear Form', 'Are you sure you want to clear all fields?', [
@@ -92,7 +94,7 @@ export const ExpenseFormSheet = ({
     <BottomSheet visible={isSheetVisible} onClose={clearForm} height="85%">
       <View className="flex-col gap-3">
         <View className="flex-row justify-between items-center">
-          <AppText className="text-xl">Category</AppText>
+          <AppText className="text-xl text-dark-text-primary">Category</AppText>
           <TouchableOpacity
             className="flex-row gap-2 bg-light-primary py-3 px-4 rounded-full items-center"
             onPress={() => setShowNewCategoryModal(true)}
@@ -102,11 +104,12 @@ export const ExpenseFormSheet = ({
           </TouchableOpacity>
         </View>
 
-        <View className="border border-gray-300 rounded-2xl overflow-hidden">
+        <View className="border border-gray-300 dark:border-gray-700 rounded-2xl overflow-hidden">
           <Picker
             selectedValue={form.category}
             onValueChange={(selectedCategoryName) => setForm({ category: selectedCategoryName })}
-            style={{ height: 56 }}
+            style={{ height: 56, color: isDark ? '#B0B0B0' : '' }}
+            dropdownIconColor={isDark ? '#B0B0B0' : ''}
           >
             {categories.map((category) => (
               <Picker.Item
@@ -124,7 +127,8 @@ export const ExpenseFormSheet = ({
             keyboardType="numeric"
             value={form.amount}
             onChangeText={(enteredAmount) => setForm({ amount: enteredAmount })}
-            className="border border-gray-300 p-3 rounded-2xl"
+            className="border border-gray-300 dark:border-gray-700 p-3 rounded-2xl"
+            style={{ color: isDark ? '#B0B0B0' : '' }}
           />
         </Section>
 
@@ -140,7 +144,7 @@ export const ExpenseFormSheet = ({
             placeholder="Add a note..."
             value={form.description}
             onChangeText={(text) => setForm({ description: text })}
-            className="border rounded-xl border-gray-300 p-3 h-36"
+            className="border rounded-xl border-gray-300 dark:border-gray-700 p-3 h-36"
             multiline
             textAlignVertical="top"
           />
@@ -157,9 +161,11 @@ export const ExpenseFormSheet = ({
           ) : (
             <TouchableOpacity
               onPress={() => setShowDatePicker(!showDatePicker)}
-              className="border rounded-xl border-gray-300 p-3 h-12 bg-white justify-center"
+              className="border rounded-xl border-gray-300 dark:border-gray-700 p-3 h-12 bg-white dark:bg-dark-background justify-center"
             >
-              <AppText>{form.date ? form.date.toDateString() : 'Select Date'}</AppText>
+              <AppText style={{ color: isDark ? '#B0B0B0' : '' }}>
+                {form.date ? form.date.toDateString() : 'Select Date'}
+              </AppText>
             </TouchableOpacity>
           )}
 
