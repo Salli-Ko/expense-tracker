@@ -241,7 +241,7 @@ const {
 } = useInitDatabase();
 ```
 
-### setShowNewCategoryModal Component
+### ExpenseFormSheet Component
 Standalone form for adding expenses:
 - SMS parsing
 - Category selection (iOS/Android optimized)
