@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { ScrollView } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { Header } from '@/components/home/Header';
+import { Header } from '@/components/Header';
 import Body from '@/components/Body';
 import useChartsData from '@/hooks/useChartsData';
 import {
@@ -12,10 +12,10 @@ import {
   getTotalCategorySpending,
   getCategoryPieData,
 } from '@/util/chart-utils';
-import { WeeklySpendingSection } from '@/components/charts/WeeklySpendingSection';
-import { WeeklyBreakdownGrid } from '@/components/charts/WeeklyBreakdownGrid';
-import { CategoryBreakdownSection } from '@/components/charts/CategoryBreakdownSection';
-import { Loader } from '@/components/home/Loader';
+import { WeeklySpendingSection } from '@/components/charts-screen/sections/WeeklySpendingSection';
+import { WeeklyBreakdownGrid } from '@/components/charts-screen/sections/WeeklyBreakdownGrid';
+import { CategoryBreakdownSection } from '@/components/charts-screen/sections/CategoryBreakdownSection';
+import { Loader } from '@/components/Loader';
 
 const SpendingAnalytics: React.FC = () => {
   const { weeklyData, categoryData, loading, loadChartsData } = useChartsData();

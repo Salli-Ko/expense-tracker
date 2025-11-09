@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppText } from '@/components/AppText';
-import { MiniListItem } from '@/components/MiniListItem';
+import { MiniListItem } from '@/components/category-management-screen/lists/MiniListItem';
 import { CategoryKeyword } from '@/database/models/CategoryKeyword';
 
 type TGroupedKeywords = Record<string, CategoryKeyword[]>;

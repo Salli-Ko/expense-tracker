@@ -1,8 +1,8 @@
 import React from 'react';
 import { View } from 'react-native';
 import { AppText } from '@/components/AppText';
-import CategoryPieChart from '@/components/CategoryPieChart';
-import CategoryCard from '@/components/CategoryCard';
+import CategoryPieChart from '@/components/charts-screen/charts/CategoryPieChart';
+import CategoryCard from '@/components/charts-screen/cards/CategoryCard';
 import { CATEGORY_COLORS, CATEGORY_PROGRESS_COLORS } from '@/constants/categoryColors';
 import { formatCurrency } from '@/util/common-utils';
 import { TCategoryData } from '@/util/chart-utils';

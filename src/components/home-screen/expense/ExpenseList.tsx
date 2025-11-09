@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, FlatList } from 'react-native';
 import { AppText } from '@/components/AppText';
-import { ExpenseGroup } from '@/components/expense/ExpenseGroup';
+import { ExpenseGroup } from '@/components/home-screen/expense/ExpenseGroup';
 import { Expense } from '@/database/models/Expense';
 import { Category } from '@/database/models/Category';
 import { groupExpensesByDate } from '@/util/expenses';

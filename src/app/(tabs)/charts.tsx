@@ -1,5 +1,5 @@
 import React from 'react';
-import SpendingAnalytics from '@/components/charts/SpendingAnalytics';
+import SpendingAnalytics from '@/components/charts-screen/SpendingAnalytics';
 
 const ChartsScreen: React.FC = () => {
   return <SpendingAnalytics />;

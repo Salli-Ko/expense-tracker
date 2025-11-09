@@ -2,8 +2,8 @@ import React from 'react';
 import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppText } from '@/components/AppText';
-import StatCard from '@/components/StatCard';
-import WeeklyBarChart, { TBarDatum } from '@/components/WeeklyBarChart';
+import StatCard from '@/components/charts-screen/cards/StatCard';
+import WeeklyBarChart, { TBarDatum } from '@/components/charts-screen/charts/WeeklyBarChart';
 import { formatCurrency } from '@/util/common-utils';
 
 type TWeeklySpendingSectionProps = {

@@ -5,7 +5,7 @@ import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { AppText, AppTextInput } from '@/components/AppText';
 import { BottomSheet } from '@/components/BottomSheet';
-import { CategorySheet } from '@/components/CategorySheet';
+import { CategorySheet } from '@/components/home-screen/sheets/CategorySheet';
 import { PLATFORM } from '@/constants/platformConstants';
 import { Category } from '@/database/models/Category';
 import { TExpenseFormState } from '@/hooks/useExpenseFormState';

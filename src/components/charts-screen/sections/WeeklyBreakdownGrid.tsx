@@ -1,7 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import { AppText } from '@/components/AppText';
-import StatCard from '@/components/StatCard';
+import StatCard from '@/components/charts-screen/cards/StatCard';
 import { formatCurrency } from '@/util/common-utils';
 import { TWeeklyData } from '@/util/chart-utils';
 

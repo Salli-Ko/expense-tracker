@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, TouchableOpacity } from 'react-native';
 import { AppText, AppTextInput } from '@/components/AppText';
-import { ExpenseFormSheet } from '@/components/ExpenseFormSheet';
+import { ExpenseFormSheet } from '@/components/home-screen/sheets/ExpenseFormSheet';
 import { useExpenseFormState } from '@/hooks/useExpenseFormState';
 import { Category } from '@/database/models/Category';
 import { useSmsParser } from '@/hooks/useSMSParser';

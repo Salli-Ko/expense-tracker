@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, ScrollView } from 'react-native';
 import { AppText } from '@/components/AppText';
-import { Loader } from '@/components/home/Loader';
-import { Header } from '@/components/home/Header';
+import { Loader } from '@/components/Loader';
+import { Header } from '@/components/Header';
 import Body from '@/components/Body';
-import { ExpandableKeywordList } from '@/components/ExpandableKeywordList';
+import { ExpandableKeywordList } from '@/components/category-management-screen/lists/ExpandableKeywordList';
 import { useCategoryKeywords } from '@/hooks/useCategoryKeywords';
 
 const CategoryInsights: React.FC = () => {

@@ -1,9 +1,9 @@
 import React from 'react';
 import { View } from 'react-native';
 import { AppText } from '@/components/AppText';
-import ExpenseItemCard from '@/components/expense/ExpenseItemCard';
+import ExpenseItemCard from '@/components/home-screen/expense/ExpenseItemCard';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
-import { SwipeActions } from '@/components/expense/SwipeActions';
+import { SwipeActions } from '@/components/home-screen/actions/SwipeActions';
 import { Expense } from '@/database/models/Expense';
 import { IoniconName } from '@/constants/categoryColors';
 import { formatCurrency } from '@/util/common-utils';

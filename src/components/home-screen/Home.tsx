@@ -2,13 +2,13 @@ import React from 'react';
 import { ScrollView, View } from 'react-native';
 import { useInitDatabase } from '@/hooks/useInitDatabase';
 import { AppText } from '@/components/AppText';
-import ExpenseList from '@/components/expense/ExpenseList';
-import { Header } from '@/components/home/Header';
-import { Loader } from '@/components/home/Loader';
-import { ErrorState } from '@/components/home/ErrorState';
+import ExpenseList from '@/components/home-screen/expense/ExpenseList';
+import { Header } from '@/components/Header';
+import { Loader } from '@/components/Loader';
+import { ErrorState } from '@/components/ErrorState';
 import { handleDeleteExpense, handleEditExpense } from '@/controllers/expenseController';
 import Body from '@/components/Body';
-import { SmsParserInput } from '@/components/SmsParserInput';
+import { SmsParserInput } from '@/components/home-screen/expense/SmsParserInput';
 import { formatCurrency } from '@/util/common-utils';
 
 const Home = () => {
