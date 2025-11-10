@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { AppText } from '@/components/AppText';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -74,19 +75,19 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.errorContainer}>
-              <Text style={styles.errorIcon}>⚠️</Text>
-              <Text style={styles.errorTitle}>Oops! Something went wrong</Text>
-              <Text style={styles.errorMessage}>
-                The app encountered an unexpected error. Don't worry, your data is safe.
-              </Text>
+              <AppText style={styles.errorIcon}>⚠️</AppText>
+              <AppText style={styles.errorTitle}>Oops! Something went wrong</AppText>
+              <AppText style={styles.errorMessage}>
+                The app encountered an unexpected error. Don&#39;t worry, your data is safe.
+              </AppText>
 
               {__DEV__ && this.state.error && (
                 <View style={styles.debugContainer}>
-                  <Text style={styles.debugTitle}>Error Details (Dev Only):</Text>
+                  <AppText style={styles.debugTitle}>Error Details (Dev Only):</AppText>
                   <View style={styles.debugBox}>
-                    <Text style={styles.debugText}>{this.state.error.toString()}</Text>
+                    <AppText style={styles.debugText}>{this.state.error.toString()}</AppText>
                     {this.state.errorInfo && (
-                      <Text style={styles.debugText}>{this.state.errorInfo.componentStack}</Text>
+                      <AppText style={styles.debugText}>{this.state.errorInfo.componentStack}</AppText>
                     )}
                   </View>
                 </View>
@@ -97,10 +98,10 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
                 onPress={this.handleReset}
                 activeOpacity={0.8}
               >
-                <Text style={styles.resetButtonText}>Try Again</Text>
+                <AppText style={styles.resetButtonText}>Try Again</AppText>
               </TouchableOpacity>
 
-              <Text style={styles.helpText}>If the problem persists, please restart the app</Text>
+              <AppText style={styles.helpText}>If the problem persists, please restart the app</AppText>
             </View>
           </ScrollView>
         </View>

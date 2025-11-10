@@ -1,50 +1,41 @@
+import React, { useEffect } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import 'react-native-reanimated';
+import '../../global.css';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
-
+import * as SplashScreen from 'expo-splash-screen';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import ErrorBoundary from '@/components/ErrorBoundary';
+import { useFonts } from 'expo-font';
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+// Prevent splash screen from auto-hiding before fonts load
+void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
-  return (
-    <ErrorBoundary
-      onError={(error, errorInfo) => {
-        // Optional: Log to error reporting service
-        console.error('App Error:', error);
-        console.error('Error Info:', errorInfo);
+  const [fontsLoaded] = useFonts({
+    'Poppins-Regular': require('../assets/fonts/Poppins-Regular.ttf'),
+  });
 
-        // TODO: Example: Send to Sentry, Firebase Crashlytics, etc.
-        // Sentry.captureException(error, { contexts: { react: errorInfo } });
-      }}
-    >
+  useEffect(() => {
+    if (fontsLoaded) {
+      void SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) return null;
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-          <Stack.Screen
-            name="category-management"
-            options={{
-              presentation: 'modal',
-              title: 'Learned Categories',
-              headerStyle: {
-                backgroundColor: '#3498db',
-              },
-              headerTintColor: '#fff',
-              headerTitleStyle: {
-                fontWeight: 'bold',
-              },
-            }}
-          />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="category-management" />
         </Stack>
-        <StatusBar style="auto" />
+        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       </ThemeProvider>
-    </ErrorBoundary>
+    </GestureHandlerRootView>
   );
 }
